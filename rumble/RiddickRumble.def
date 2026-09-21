@@ -1,0 +1,4 @@
+LIBRARY RiddickRumble
+EXPORTS
+    RiddickRumble
+    RiddickRumbleByName
