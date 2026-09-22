@@ -11,6 +11,8 @@ hat.
 
 *English version: [README.md](README.md)*
 
+![Der Launcher, Reiter Einbau](docs/launcher.png)
+
 ---
 
 ## Was es macht

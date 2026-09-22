@@ -10,6 +10,8 @@ Xbox 360 release and fixes several things the PC port left broken.
 
 *Deutsche Fassung: [LIESMICH.md](LIESMICH.md)*
 
+![The launcher, Install tab](docs/launcher.png)
+
 ---
 
 ## What it does

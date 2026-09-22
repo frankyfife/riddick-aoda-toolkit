@@ -145,14 +145,16 @@ TEXTE = {
 
     # ------------------------------------------------------ Reiter Einbau
     "bestandteile":     ("Bestandteile", "Components"),
-    "einbau_info":      ("Die fertigen Dateien liegen in data\\ neben dem Launcher und "
-                         "werden mit Pruefsumme abgeglichen: nur wenn die Zieldatei dem "
-                         "erwarteten Original oder der bearbeiteten Fassung entspricht, "
-                         "wird sie angefasst. Eine fremde Spielfassung bleibt unberuehrt.",
-                         "The finished files live in data\\ next to the launcher and are "
-                         "checked by hash: a file is only touched when it matches either "
-                         "the expected original or the modified version. A different "
-                         "build of the game is left alone."),
+    "einbau_info":      ("Es werden keine Spieldateien mitgeliefert. Jeder Bestandteil "
+                         "wird aus den Dateien dieser Installation erzeugt, indem die "
+                         "Skripte unter patches\\ darauf angewandt werden. Findet ein "
+                         "Skript seine Bytemuster nicht, bricht es ab und laesst die "
+                         "Datei unberuehrt - eine andere Spielfassung bleibt also heil.",
+                         "No game files are shipped with this. Each component is built "
+                         "from the files of this installation by applying the scripts "
+                         "under patches\\ to them. If a script cannot find its byte "
+                         "patterns it stops and leaves the file alone, so a different "
+                         "build of the game stays intact."),
     "einbauen":         ("einbauen", "install"),
     "entfernen":        ("entfernen", "remove"),
     "alles_einbauen":   ("Alles einbauen", "Install everything"),
