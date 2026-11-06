@@ -18,3 +18,8 @@ __pycache__/
 *.lib
 *.exp
 RiddickRumble.log
+
+# Drop-in build output and runtime files
+dropin/build/
+AodaFix_cache/
+AodaFix.log

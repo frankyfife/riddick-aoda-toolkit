@@ -15,6 +15,41 @@ hat.
 
 ---
 
+## Drop-in: eine winmm.dll statt Launcher (empfohlen)
+
+Alles, was unten beschrieben ist, gibt es auch ohne Python, ohne Launcher und
+ohne eine einzige veränderte Spieldatei: `dropin/` baut eine 32-Bit-`winmm.dll`,
+die das Spiel beim Start selbst lädt. Sie patcht die Programmteile im Speicher
+und erzeugt die geänderten Daten (Menüs, Schriften, Texte, Waffen, Shader) beim
+ersten Start in einen Zwischenspeicher, aus dem das Spiel sie statt der
+Originale liest.
+
+**Einbau:** `winmm.dll` und `AodaFix.ini` nach `<Spiel>\System\Win32_x86\`
+kopieren, fertig. **Ausbau:** beide Dateien und den Ordner `AodaFix_cache`
+löschen.
+
+* Wer vorher den Launcher benutzt hat, setzt dort zuerst **Alles
+  zurücksetzen** — die Drop-in erkennt ihre Bytemuster nur in den
+  Originaldateien und lässt veränderte Dateien unangetastet.
+* Einstellungen stehen in `AodaFix.ini` (Hilfe-Knopf, Hauptmenü Xbox/PC,
+  Zielhilfe, Vibrationsstärke, Randlos/4K …), ein Protokoll in `AodaFix.log`.
+* Zusätzlich zum Launcher: `VID_MODE` folgt der Desktop-Auflösung, ein
+  ungültiges `XR_SHADERMODE` (die mitgelieferte cfg hat `11`) wird beim ersten
+  Start korrigiert, und bei eingeschaltetem Windows-HDR wird die Gammarampe des
+  Spiels ignoriert und beim Beenden die ursprüngliche wiederhergestellt.
+* Die Knopf-Hinweise der Menüs („Weiterspielen“, „Zurück“) sind kleiner
+  (`HintSize`, `HintIconSize`), die Symbole in den kräftigen 360-Farben und auf
+  dem gestreckten Inventar-Raster rund. Das L3 der Hilfe-Leiste sitzt näher am
+  Text. Der PS3-Cube überspringt die Trophäen-Installation.
+
+**Bauen:** `dropin\build.cmd` (MSVC Build Tools 2022, Python 3 mit `pefile`).
+`python dropin\tools\selftest.py <Originalbaum> <vom Launcher gepatchter Baum> <Arbeitsordner>`
+lädt die Spielmodule, ohne sie auszuführen, wendet die Drop-in an und
+vergleicht Code und Daten mit dem, was die Python-Skripte schreiben: der
+Glyphen-Code, jede Patchstelle, RndrGL und alle Textdateien sind bytegleich.
+
+---
+
 ## Was es macht
 
 **Xbox-360-Knopfsymbole überall.** Menüs, Eckhinweise und Fließtext benutzen

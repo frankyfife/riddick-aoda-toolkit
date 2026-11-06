@@ -14,6 +14,39 @@ Xbox 360 release and fixes several things the PC port left broken.
 
 ---
 
+## Drop-in: one winmm.dll instead of the launcher (recommended)
+
+Everything described below is also available without Python, without the
+launcher and without changing a single game file: `dropin/` builds a 32-bit
+`winmm.dll` that the game loads by itself. It patches the code in memory and
+generates the changed data (menus, fonts, texts, weapons, shader include) into
+a cache folder on first start; the game reads those instead of the originals.
+
+**Install:** copy `winmm.dll` and `AodaFix.ini` to `<Game>\System\Win32_x86\`.
+**Remove:** delete both files and the `AodaFix_cache` folder.
+
+* If you used the launcher before, run **Revert everything** there first - the
+  drop-in only recognises its byte patterns in the original files and leaves
+  modified files alone.
+* Settings live in `AodaFix.ini` (help button, Xbox/PC main menu, aim assist,
+  rumble strength, borderless/4K …), a log in `AodaFix.log`.
+* On top of the launcher: `VID_MODE` follows the desktop resolution, an invalid
+  `XR_SHADERMODE` (the shipped cfg has `11`) is fixed on first start, and with
+  Windows HDR on the game's gamma ramp is ignored and the original one restored
+  on exit.
+* The menu button hints ("Continue", "Back") are smaller (`HintSize`,
+  `HintIconSize`), the icons use the full-colour 360 artwork and stay round on
+  the stretched inventory canvas, the help bar's L3 sits closer to its label, and
+  the PS3 cube skips the trophy installation.
+
+**Build:** `dropin\build.cmd` (MSVC Build Tools 2022, Python 3 with `pefile`).
+`python dropin\tools\selftest.py <original tree> <launcher-patched tree> <work dir>`
+maps the game modules without running them, applies the drop-in and compares
+code and data with what the Python scripts write: the glyph code, every patch
+site, RndrGL and all text files are byte-identical.
+
+---
+
 ## What it does
 
 **Xbox 360 button prompts everywhere.** Menus, corner hints and inline text use
