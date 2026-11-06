@@ -1,8 +1,9 @@
 # Riddick AoDA Toolkit
 
-A launcher and patch set for the PC version of **The Chronicles of Riddick:
-Assault on Dark Athena** (2009). It brings the game back in line with the
-Xbox 360 release and fixes several things the PC port left broken.
+A fix for the PC version of **The Chronicles of Riddick: Assault on Dark
+Athena** (2009). It brings the game back in line with the Xbox 360 release and
+repairs what the PC port left broken - as a drop-in `winmm.dll`, or as a Python
+launcher that patches the files.
 
 > **No game files are included in this repository.** Every change is computed
 > from the files of your own installation. The repository contains only its
@@ -10,145 +11,134 @@ Xbox 360 release and fixes several things the PC port left broken.
 
 *Deutsche Fassung: [LIESMICH.md](LIESMICH.md)*
 
-![The launcher, Install tab](docs/launcher.png)
+---
+
+## Compatibility
+
+Developed and tested against the **GOG release**, build `GMC-1.161`
+(`BuildInfo.txt`: code and content 2009-03-25, changelist 159290):
+
+| File | Size (bytes) | SHA-256 (first 16) |
+|---|---|---|
+| `System\Win32_x86\DarkAthena.exe` | 5140336 | `27ADAC97C5F59612` |
+| `System\Win32_x86\MSystem.dll` | 5113072 | `8CDE669FB7B4F742` |
+| `System\Win32_x86\RndrGL.dll` | 939248 | `B07BAAC43CE4BBF6` |
+| `Content\GameClasses_Win32_x86.dll` | 9016560 | `D7E81D7D3726D8F7` |
+| `Content\GameWorld_Win32_x86.dll` | 4994288 | `A910A39BAE87F41C` |
+
+Every patch looks for its byte pattern and leaves a file alone if it does not
+match exactly, so another build is not damaged - it just goes without that fix.
+`AodaFix.log` lists what was applied.
 
 ---
 
-## Drop-in: one winmm.dll instead of the launcher (recommended)
+## Drop-in: AodaFix (recommended)
 
-Everything described below is also available without Python, without the
-launcher and without changing a single game file: `dropin/` builds a 32-bit
-`winmm.dll` that the game loads by itself. It patches the code in memory and
-generates the changed data (menus, fonts, texts, weapons, shader include) into
-a cache folder on first start; the game reads those instead of the originals.
+`dropin/` builds a 32-bit `winmm.dll` that the game loads by itself. It patches
+the code in memory and writes the changed data (menus, fonts, texts, weapons,
+shader include) to a cache folder on first start; the game reads those in place
+of the originals. No Python, no launcher, no modified game file.
 
 **Install:** copy `winmm.dll` and `AodaFix.ini` to `<Game>\System\Win32_x86\`.
 **Remove:** delete both files and the `AodaFix_cache` folder.
 
 * If you used the launcher before, run **Revert everything** there first - the
-  drop-in only recognises its byte patterns in the original files and leaves
-  modified files alone.
-* Settings live in `AodaFix.ini` (help button, Xbox/PC main menu, aim assist,
-  rumble strength, borderless/4K …), a log in `AodaFix.log`.
-* On top of the launcher: `VID_MODE` follows the desktop resolution, an invalid
-  `XR_SHADERMODE` (the shipped cfg has `11`) is fixed on first start, and with
-  Windows HDR on the game's gamma ramp is ignored and the original one restored
-  on exit.
-* The menu button hints ("Continue", "Back") are smaller (`HintSize`,
-  `HintIconSize`), the icons use the full-colour 360 artwork and stay round on
-  the stretched inventory canvas, the help bar's L3 sits closer to its label, and
-  the PS3 cube skips the trophy installation.
+  drop-in only recognises the original files.
+* All settings are in `AodaFix.ini` with comments, a log is written to
+  `AodaFix.log`.
 
 **Build:** `dropin\build.cmd` (MSVC Build Tools 2022, Python 3 with `pefile`).
 `python dropin\tools\selftest.py <original tree> <launcher-patched tree> <work dir>`
 maps the game modules without running them, applies the drop-in and compares
-code and data with what the Python scripts write: the glyph code, every patch
-site, RndrGL and all text files are byte-identical.
+the result with what the Python scripts write.
 
 ---
 
 ## What it does
 
 **Xbox 360 button prompts everywhere.** Menus, corner hints and inline text use
-the original 360 artwork that ships with the game but is never shown on PC. The
-washed-out `_32` variants the PC build reaches for are replaced by the proper
-ones. Help sits on L3 with an unambiguous stick icon; night vision moves to
-d-pad up.
+the original 360 artwork that ships with the game but is never shown on PC, in
+its full colours instead of the washed-out `_32` variants. Button names in info
+texts become icons. Help sits on L3 with an unambiguous stick icon.
 
-**Working vibration.** The PC port ships the complete envelope data — the file
-`Content\Feedback\feedback.xrg` is byte for byte the one the Xbox 360 version
-uses — but no output stage: `XInputSetState` appears in no PC binary, while the
-360 executable imports `XamInputSetState`. A small helper DLL
-(`rumble/`, source included) reads those envelopes, mixes up to eight
-concurrent effects at 60 Hz and drives both motors.
+**Console menus.** Six bytes in `MSystem.dll` decide which `PLATFORM_` symbols
+the registry preprocessor defines - the Xbox 360 cube menu with its button
+hints, the PC cube, or the PS3 cube (without the PS3 trophy installation).
 
-**4K without letterboxing.** The renderer enumerated display modes and stopped
-after 512 entries. On a current system Windows reports around 650 modes and
-3840×2160 sits near the end, so the game never saw it and fell back to
-1920×1440 — which is 4:3, hence the bars. Raising the limit, removing the
-window border and correcting the viewport gives a full-screen, undistorted
-image.
+**Tidier menu hints** *(drop-in)*. "Continue"/"Back" and their icons were drawn
+at full line height; they are smaller now (`HintSize`, `HintIconSize`), the icons
+stay round on the stretched inventory overlay, and the help bar's icon sits next
+to its label.
+
+**Working vibration.** The PC port ships the complete envelope data -
+`Content\Feedback\feedback.xrg` is byte for byte the Xbox 360 file - but no
+output stage: `XInputSetState` appears in no PC binary. The envelopes are read,
+up to eight effects mixed at 60 Hz and sent to both motors.
+
+**4K without letterboxing.** The renderer stopped enumerating display modes
+after 512; current systems report about 650 and 3840×2160 sits near the end, so
+the game fell back to 1920×1440 (4:3, hence the bars). The limit is raised, the
+window is borderless across the whole monitor, and the drop-in sets `VID_MODE`
+to the desktop mode.
 
 **Shader compatibility.** `System\GL\HLInclude_GLSL.xrg` uses the
-three-argument form of `texture2D`/`textureCube`. That is not legal in a
-fragment shader; newer drivers reject it and the game aborts on start in
-`CRenderContextGL::GLSL_LoadSrc`. The launcher can apply and undo the fix.
+three-argument `texture2D`/`textureCube`, which is not legal in a fragment
+shader; current drivers reject it and the game aborts in
+`CRenderContextGL::GLSL_LoadSrc`. The bias argument is dropped. The drop-in also
+fixes the shipped `XR_SHADERMODE=11` (valid: 0-6) that crashes a fresh install.
 
-**Aim assist you can actually switch off.** The slider in the options menu is
-inert: its value is read, scaled by difficulty and stored, but the aiming code
-never looks at it again. What does work is the weapon flag `autoaim`, set on 23
-weapons — the launcher toggles that.
+**Aim assist you can actually switch off.** The options slider is inert - its
+value is stored but never read. The real switch is the weapon flag `autoaim` on
+23 weapons.
 
-**Main menu switch.** Six bytes in `MSystem.dll` decide which `PLATFORM_`
-symbols the registry preprocessor defines. Switch between the PC cube menu and
-the console one at any time.
+**Windows HDR** *(drop-in)*. With HDR on, the game's gamma ramp is ignored and
+the original ramp is restored on exit.
 
-**Graphics settings.** Every key the engine really reads from
+**Graphics settings** *(launcher)*. Every key the engine really reads from
 `Environment.cfg`, with the module that reads it and its default, both taken
 from the binaries rather than guessed.
 
 ---
 
-## Requirements
+## Launcher (alternative)
 
-* Windows, Python 3 with tkinter (the standard python.org installer has it)
-* **Pillow** — only for the *fonts* component, which re-encodes the button
-  artwork into the game's font atlases: `pip install pillow`
-* MSVC Build Tools — only if you want to rebuild the vibration DLL yourself;
-  a compiled copy is included
+The launcher writes the same changes into the game files - useful to inspect a
+single change, or where a proxy DLL is not wanted.
 
-## Running it
-
-```
-RiddickLauncher.cmd
-```
-
-On first start pick `<Game>\System\Win32_x86\DarkAthena.exe`. Everything else
-is derived from that path. The choice and the interface language (German /
-English) are remembered in `%LOCALAPPDATA%\RiddickLauncher\launcher.json`.
-
-## Backups
-
-Before a file is modified for the first time it is copied to
-`<Game>\_LauncherBackup\`, keeping the directory layout. **Revert everything**
-restores every one of those copies and deletes anything that was added.
-`Environment.cfg` lives outside the game folder, under
-`%LOCALAPPDATA%\Atari\...`, and gets its own backup.
-
-## Components
+* Requirements: Windows, Python 3 with tkinter; **Pillow** for the fonts
+  component (`pip install pillow`); MSVC Build Tools only to rebuild the
+  vibration DLL (a compiled copy is included).
+* Start `RiddickLauncher.cmd` and pick `<Game>\System\Win32_x86\DarkAthena.exe`.
+  The choice and the interface language are remembered in
+  `%LOCALAPPDATA%\RiddickLauncher\launcher.json`.
+* Before a file is changed for the first time it is copied to
+  `<Game>\_LauncherBackup\`; **Revert everything** restores all copies and
+  removes anything that was added. `Environment.cfg` gets its own backup.
 
 | Component | What it touches |
 |---|---|
 | `kern`    | GameClasses, GameWorld, MSystem, CubeWnd.xrg, CubeInv0.xrg |
-| `grafik`  | RndrGL.dll — borderless window, 4K mode list, viewport |
-| `schrift` | Text.xfc, Subtitle.xfc, Headings.xfc — coloured button icons |
+| `grafik`  | RndrGL.dll - borderless window, 4K mode list, viewport |
+| `schrift` | Text.xfc, Subtitle.xfc, Headings.xfc - coloured button icons |
 | `texte`   | Frontend / StringsX360 string tables |
 | `rumble`  | RiddickRumble.dll + .ini |
 
-Each is generated by the scripts in `patches/`, which can also be run on their
-own — every one takes a path and has `--apply` and `--restore`.
+Each component is produced by the scripts in `patches/`, which also run on their
+own - every one takes a path and has `--apply` and `--restore`.
 
 ## Layout
 
 ```
-RiddickLauncher.pyw   the interface
-rmod.py               all the logic: paths, backups, components, settings
+dropin/               AodaFix - the drop-in winmm.dll (C++), build script, self test
+RiddickLauncher.pyw   launcher interface
+rmod.py               launcher logic: paths, backups, components, settings
 sprachen.py           German / English strings
 patches/              the patch scripts, one per concern
-rumble/               vibration DLL, C source and a prebuilt binary
+rumble/               vibration DLL for the launcher, C source and a prebuilt binary
 tools/                fix_riddick_dds.py - repairs DDS files written by the
                       game's own exporter (wrong FourCC, mip count off by one)
 docs/                 what the reverse engineering turned up
 ```
-
-## Caveats
-
-* Built against the retail PC release. The scripts check their byte patterns
-  and refuse to touch a file they do not recognise, so a different build is
-  left alone rather than corrupted.
-* `XR_SHADERMODE` in the shipped `Environment.cfg` is `11`, outside the valid
-  range of 0–6. The launcher points this out; on a fresh installation that
-  value alone will crash the game.
 
 ## Licence
 
