@@ -11,6 +11,8 @@ Python-Launcher, der die Dateien patcht.
 
 *English version: [README.md](README.md)*
 
+**Download:** die fertige Drop-in steht unter [Releases](https://github.com/frankyfife/riddick-aoda-toolkit/releases).
+
 ---
 
 ## Kompatibilität

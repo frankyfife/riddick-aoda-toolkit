@@ -11,6 +11,8 @@ launcher that patches the files.
 
 *Deutsche Fassung: [LIESMICH.md](LIESMICH.md)*
 
+**Download:** the ready-built drop-in is on the [Releases](https://github.com/frankyfife/riddick-aoda-toolkit/releases) page.
+
 ---
 
 ## Compatibility
