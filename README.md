@@ -144,7 +144,8 @@ docs/                 what the reverse engineering turned up
 
 ## Licence
 
-MIT, see [LICENSE](LICENSE). This covers the code in this repository. It is a
+GNU General Public License v3.0, see [LICENSE](LICENSE). This covers the code
+in this repository. It is a
 tool that modifies an installation you own; it neither contains nor
 distributes any part of the game.
 

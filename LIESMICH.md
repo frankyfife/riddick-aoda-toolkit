@@ -151,7 +151,8 @@ docs/                 was die Untersuchung ergeben hat
 
 ## Lizenz
 
-MIT, siehe [LICENSE](LICENSE). Das gilt für den Quelltext in diesem Projekt.
+GNU General Public License v3.0, siehe [LICENSE](LICENSE). Das gilt für den
+Quelltext in diesem Projekt.
 Es ist ein Werkzeug, das eine Installation ändert, die einem selbst gehört; es
 enthält und verbreitet keinen Teil des Spiels.
 
