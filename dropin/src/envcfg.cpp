@@ -42,10 +42,14 @@ void EnvCfg_Prepare()
     std::wstring cfg = dir + L"\\Environment.cfg";
 
     std::vector<uint8_t> raw;
-    if (!ReadFileAll(cfg, raw)) {
+    if (GetFileAttributesW(cfg.c_str()) == INVALID_FILE_ATTRIBUTES) {
         // first start: the game seeds its cfg from the shipped one (XR_SHADERMODE=11 there)
         if (!ReadFileAll(std::wstring(g_gameRoot) + L"\\Environment.cfg", raw)) { Log("envcfg: no Environment.cfg yet"); return; }
         Log("envcfg: seeded from the game folder");
+    } else if (!ReadFileAll(cfg, raw) || raw.empty()) {
+        // exists but unreadable (locked, empty): never replace the user's settings
+        Log("envcfg: Environment.cfg not readable - left alone");
+        return;
     }
     std::string s(raw.begin(), raw.end());
     bool changed = false;
@@ -67,7 +71,16 @@ void EnvCfg_Prepare()
         }
     }
     if (!changed) { Log("envcfg: ok (VID_MODE=%s, XR_SHADERMODE=%s)", GetKey(s, "VID_MODE").c_str(), GetKey(s, "XR_SHADERMODE").c_str()); return; }
-    HANDLE h = CreateFileW(cfg.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, 0, nullptr);
-    if (h == INVALID_HANDLE_VALUE) { Log("envcfg: cannot write %ls", cfg.c_str()); return; }
-    DWORD wr; WriteFile(h, s.data(), (DWORD)s.size(), &wr, nullptr); CloseHandle(h);
+    // write a temp file and swap it in, so a crash or a full disk never leaves a truncated cfg
+    std::wstring tmp = cfg + L".aodafix.tmp";
+    HANDLE h = CreateFileW(tmp.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, 0, nullptr);
+    if (h == INVALID_HANDLE_VALUE) { Log("envcfg: cannot write %ls", tmp.c_str()); return; }
+    DWORD wr = 0;
+    BOOL ok = WriteFile(h, s.data(), (DWORD)s.size(), &wr, nullptr) && wr == s.size();
+    ok = FlushFileBuffers(h) && ok;
+    CloseHandle(h);
+    if (!ok || !MoveFileExW(tmp.c_str(), cfg.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+        Log("envcfg: writing Environment.cfg failed (%lu) - left unchanged", GetLastError());
+        DeleteFileW(tmp.c_str());
+    }
 }

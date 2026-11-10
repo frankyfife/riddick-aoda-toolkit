@@ -83,5 +83,5 @@ void FontGen_Run();                               // coloured button icons insid
 void EnvCfg_Prepare();                            // Environment.cfg sanity
 void Rumble_Init();
 void __stdcall Rumble_Play(int id);
-void Rumble_Shutdown();
+void Rumble_Shutdown(bool callXInput);   // false on process exit
 void Display_Shutdown();

@@ -206,8 +206,8 @@ void __stdcall Rumble_Play(int id)
     LeaveCriticalSection(&g_cs);
 }
 
-void Rumble_Shutdown()
+void Rumble_Shutdown(bool callXInput)
 {
     g_stop = 1;
-    if (g_set) { XVib off = { 0, 0 }; g_set(g_pad, &off); }
+    if (callXInput && g_set) { XVib off = { 0, 0 }; g_set(g_pad, &off); }
 }

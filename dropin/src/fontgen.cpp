@@ -42,6 +42,8 @@ const int kGap = 4;      // multiple of 4, so no DXT block mixes two icons
 const uint32_t kFmtDXT5 = 0x800;
 
 uint32_t U32(const std::vector<uint8_t>& d, size_t o) { uint32_t v; memcpy(&v, &d[o], 4); return v; }
+// 64-bit range check: offsets come from the file and must not wrap on 32-bit size_t
+bool Within(const std::vector<uint8_t>& d, uint64_t off, uint64_t n) { return off + n <= (uint64_t)d.size(); }
 void PutU32(std::vector<uint8_t>& d, size_t o, uint32_t v) { memcpy(&d[o], &v, 4); }
 
 // ---- DXT5 --------------------------------------------------------------------------------
@@ -230,7 +232,7 @@ std::vector<DirEnt> ReadDir(const std::vector<uint8_t>& d)
     std::vector<DirEnt> v;
     if (d.size() < 48) return v;
     uint32_t p = U32(d, 24);
-    while (p + 48 <= d.size()) {
+    while (Within(d, p, 48)) {
         char nm[25] = {}; memcpy(nm, &d[p], 24);
         if (!nm[0]) break;
         bool ok = true; for (char* c = nm; *c; ++c) if (*c < 32 || *c > 126) ok = false;
@@ -256,7 +258,7 @@ std::vector<uint8_t> Rebuild(const std::vector<uint8_t>& d, const std::map<uint3
         remap[off] = (uint32_t)out.size();
         auto it = newData.find(off);
         if (it != newData.end()) out.insert(out.end(), it->second.begin(), it->second.end());
-        else out.insert(out.end(), d.begin() + off, d.begin() + std::min<size_t>(d.size(), (size_t)off + len));
+        else if (off < d.size()) out.insert(out.end(), d.begin() + off, d.begin() + (size_t)std::min<uint64_t>(d.size(), (uint64_t)off + len));
     }
     uint32_t newDir = (uint32_t)out.size();
     int64_t delta = (int64_t)newDir - dirOff;
@@ -281,24 +283,27 @@ bool LoadIcons(std::map<std::string, Img>& out)
     std::vector<uint8_t> d;
     if (!ReadFileAll(std::wstring(g_gameRoot) + L"\\Content\\GUI\\Textures\\GUI.xtc", d) || d.size() < 48) { Log("fontgen: GUI.xtc missing"); return false; }
     std::map<std::string, Img> raw;
-    for (uint32_t p = U32(d, 24); p + 48 <= d.size(); p += 48) {
+    for (uint32_t p = U32(d, 24); Within(d, p, 48); p += 48) {
         char nm[25] = {}; memcpy(nm, &d[p], 24);
         const Glyph* g = nullptr;
         for (auto& k : kGlyphs) if (!strcmp(k.tex, nm)) g = &k;
         if (!g || raw.count(nm)) continue;
         uint32_t q = p + 48;
-        while (q < p + 48 * 6 && q + 7 <= d.size() && memcmp(&d[q], "MIPMAP", 7) != 0) q += 48;
-        if (q + 48 > d.size() || memcmp(&d[q], "MIPMAP", 7) != 0) continue;
+        while (q < p + 48 * 6 && Within(d, q, 48) && memcmp(&d[q], "MIPMAP", 7) != 0) q += 48;
+        if (!Within(d, q, 48) || memcmp(&d[q], "MIPMAP", 7) != 0) continue;
         uint32_t dat = U32(d, q + 32);
-        if ((size_t)dat + 36 > d.size()) continue;
+        if (!Within(d, dat, 36)) continue;
         uint32_t w = U32(d, dat + 12), h = U32(d, dat + 16), fmt = U32(d, dat + 20), use = U32(d, dat + 28);
+        if (w == 0 || h == 0 || w > 4096 || h > 4096 || U32(d, dat + 8) < use) continue;
         uint32_t pre = U32(d, dat + 8) - use;
-        if (fmt != kFmtDXT5 || use != ((w + 3) / 4) * ((h + 3) / 4) * 16 || (size_t)dat + 36 + pre + use > d.size()) continue;
+        if (fmt != kFmtDXT5 || use != ((w + 3) / 4) * ((h + 3) / 4) * 16 || !Within(d, (uint64_t)dat + 36 + pre, use)) continue;
         DecodeDXT5(&d[dat + 36 + pre], (int)w, (int)h, raw[nm]);
     }
     for (auto& g : kGlyphs) {
         if (!raw.count(g.tex)) { Log("fontgen: %s not found in GUI.xtc", g.tex); return false; }
-        Img im = g.crop[2] ? Crop(raw[g.tex], g.crop[0], g.crop[1], g.crop[2], g.crop[3]) : CropAlphaBox(raw[g.tex]);
+        const Img& src = raw[g.tex];
+        bool cropOk = g.crop[2] && g.crop[2] <= src.w && g.crop[3] <= src.h && g.crop[0] < g.crop[2] && g.crop[1] < g.crop[3];
+        Img im = cropOk ? Crop(src, g.crop[0], g.crop[1], g.crop[2], g.crop[3]) : CropAlphaBox(src);
         int w = std::max(4, (int)lround((double)im.w * kSymH / im.h));
         out[g.tex] = Resize(im, w, kSymH);
     }
@@ -317,8 +322,10 @@ bool BuildFont(std::vector<uint8_t>& d, const std::map<std::string, Img>& icons,
     if (!cd || mm.empty()) { Log("fontgen: %s: no CHARDESC/MIPMAP", name); return false; }
     std::stable_sort(mm.begin(), mm.end(), [](const DirEnt* a, const DirEnt* b) { return a->len > b->len; });
     const DirEnt* big = mm[0];
+    for (const DirEnt* e : mm) if (!Within(d, e->data, 36)) { Log("fontgen: %s: MIPMAP outside the file", name); return false; }
+    if (!Within(d, cd->data, cd->len)) { Log("fontgen: %s: CHARDESC outside the file", name); return false; }
     int W = (int)U32(d, big->data + 12), H = (int)U32(d, big->data + 16);
-    if (U32(d, big->data + 20) != 0x40000 || (size_t)big->data + 36 + (size_t)W * H > d.size()) {
+    if (W <= 0 || H <= 0 || W > 8192 || H > 8192 || U32(d, big->data + 20) != 0x40000 || !Within(d, (uint64_t)big->data + 36, (uint64_t)W * H)) {
         Log("fontgen: %s: atlas is not A8 (already converted?)", name);
         return false;
     }
@@ -415,8 +422,11 @@ static void GuiGen_Run()
             for (int i = si + 1; i < (int)ents.size() && i < si + 6; ++i) {
                 if (ents[i].name != "MIPMAP") continue;
                 uint32_t dat = ents[i].data;
-                uint32_t w = U32(d, dat + 12), h = U32(d, dat + 16), use = U32(d, dat + 28), pre = U32(d, dat + 8) - use;
-                if (U32(d, dat + 20) == kFmtDXT5 && use == ((w + 3) / 4) * ((h + 3) / 4) * 16 && (size_t)dat + 36 + pre + use <= d.size())
+                if (!Within(d, dat, 36)) break;
+                uint32_t w = U32(d, dat + 12), h = U32(d, dat + 16), use = U32(d, dat + 28), size = U32(d, dat + 8);
+                uint32_t pre = size - use;
+                if (size >= use && w && h && w <= 4096 && h <= 4096 && U32(d, dat + 20) == kFmtDXT5 &&
+                    use == ((w + 3) / 4) * ((h + 3) / 4) * 16 && Within(d, (uint64_t)dat + 36 + pre, use))
                     DecodeDXT5(&d[dat + 36 + pre], (int)w, (int)h, art);
                 break;
             }
@@ -436,9 +446,12 @@ static void GuiGen_Run()
                 if (ents[i].name == "PROPERTIES") continue;
                 if (ents[i].name != "MIPMAP") break;
                 uint32_t dat = ents[i].data;
+                if (!Within(d, dat, 36)) break;
                 int w = (int)U32(d, dat + 12), h = (int)U32(d, dat + 16);
-                uint32_t use = U32(d, dat + 28), pre = U32(d, dat + 8) - use;
-                if (U32(d, dat + 20) != kFmtDXT5 || (size_t)dat + 36 + pre + use > d.size()) break;
+                uint32_t use = U32(d, dat + 28), size = U32(d, dat + 8);
+                if (size < use || w <= 0 || h <= 0 || w > 32 || h > 32) break;
+                uint32_t pre = size - use;
+                if (U32(d, dat + 20) != kFmtDXT5 || !Within(d, (uint64_t)dat + 36 + pre, use)) break;
                 Img lvl = (w == 32 && h == 32) ? base : Resize(base, std::max(1, w), std::max(1, h));
                 if (w < 4 || h < 4) lvl = Resize(lvl, 4, 4);
                 std::vector<uint8_t> blocks = EncodeDXT5(lvl);

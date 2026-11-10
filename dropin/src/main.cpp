@@ -34,7 +34,8 @@ static bool IsGameModule(HMODULE m, char* outName, size_t n)
 {
     wchar_t path[MAX_PATH];
     if (m == g_self || !GetModuleFileNameW(m, path, MAX_PATH)) return false;
-    if (_wcsnicmp(path, g_gameRoot, wcslen(g_gameRoot)) != 0) return false;
+    size_t rl = wcslen(g_gameRoot);
+    if (_wcsnicmp(path, g_gameRoot, rl) != 0 || path[rl] != L'\\') return false;   // not "...Athena2\"
     const wchar_t* fn = wcsrchr(path, L'\\');
     WideCharToMultiByte(CP_ACP, 0, fn ? fn + 1 : path, -1, outName, (int)n, nullptr, nullptr);
     return true;
@@ -103,7 +104,7 @@ void OnModuleLoaded(HMODULE mod, const char* name)
     }
 }
 
-BOOL APIENTRY DllMain(HMODULE h, DWORD reason, LPVOID)
+BOOL APIENTRY DllMain(HMODULE h, DWORD reason, LPVOID reserved)
 {
     if (reason == DLL_PROCESS_ATTACH) {
         g_self = h;
@@ -127,8 +128,11 @@ BOOL APIENTRY DllMain(HMODULE h, DWORD reason, LPVOID)
         Rumble_Init();
         ScanModules();
     } else if (reason == DLL_PROCESS_DETACH) {
-        Rumble_Shutdown();
+        // gamma ramp first: it must survive even if the rest goes wrong. On process
+        // exit (reserved != NULL) other threads are gone and XInput may already be
+        // detached - calling into it there can end the process on the spot.
         Display_Shutdown();
+        Rumble_Shutdown(reserved == nullptr);
     }
     return TRUE;
 }

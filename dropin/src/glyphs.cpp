@@ -112,6 +112,13 @@ bool Locate(HMODULE m, Sites& s)
     auto res = FindAllHex(m, "3d f0 00 00 00 75 08 8d 7b 01");
     if (res.size() != 2) { Log("glyphs: resolvers: %u matches", (unsigned)res.size()); return false; }
     for (uint8_t* va : res) {
+        // the pattern covers va..va+9 only; the bytes around it are used as well:
+        //   va-15 mov ecx,[esp+noff] | va-8 push ecx; mov ecx,eax; call GetValuei | va+10 jmp notext
+        static const uint8_t movEcx[] = { 0x8B, 0x8C, 0x24 }, callSeq[] = { 0x51, 0x8B, 0xC8, 0xE8 };
+        if (!InModule(m, va - 15, 30) || memcmp(va - 15, movEcx, 3) || memcmp(va - 8, callSeq, 4) || va[10] != 0xE9) {
+            Log("glyphs: resolver at %p has unexpected surroundings", va);
+            return false;
+        }
         uint32_t noff = *(uint32_t*)(va - 15 + 3);
         s.getvaluei = RelTarget(va - 5);
         if (noff == 0x144) { s.h1 = va; s.h1_back = va + 5; s.h1_notext = RelTarget(va + 10); s.pp1 = va - 15; s.pp1_noff = noff; }
@@ -120,6 +127,12 @@ bool Locate(HMODULE m, Sites& s)
     if (!s.h1 || !s.h3) { Log("glyphs: resolver assignment failed"); return false; }
 
     if (!one("drawer switch", "83 f8 03 dd d8 0f 84", s.h2)) return false;
+    // cmp eax,5 / jne <noicon> at +20, then cmp eax,eax / jne / push <texture name> - settex follows at +38
+    if (!InModule(m, s.h2, 40) || s.h2[20] != 0x83 || s.h2[23] != 0x0F || s.h2[24] != 0x85 ||
+        s.h2[29] != 0x3B || s.h2[30] != 0xC0 || s.h2[33] != 0x68) {
+        Log("glyphs: drawer switch has unexpected surroundings");
+        return false;
+    }
     s.h2_back = s.h2 + 5;
     s.h2_noicon = RelTarget(s.h2 + 23, 2);
     s.h2_settex = s.h2 + 29 + 2 + 2 + 5;
@@ -399,11 +412,12 @@ static void HintIconAspect(HMODULE m, const char* name)
     if (!stub) return;
     uint8_t* p = stub;
     auto put = [&](std::initializer_list<uint8_t> b) { for (uint8_t c : b) *p++ = c; };
+    put({ 0x52 });                               // push edx (preserved, though dead here)
     put({ 0x8D, 0x4F, 0x20 });                   // lea ecx,[edi+0x20]   (y1, unchanged)
     put({ 0x50, 0x51, 0x56 });                   // push eax (x); push ecx; push esi (CRC_Util2D)
     *p++ = 0xB8; void* fn = (void*)&HintIconWidth; memcpy(p, &fn, 4); p += 4;
-    put({ 0xFF, 0xD0 });                         // call eax  -> eax = width
-    put({ 0x89, 0xC2, 0x59, 0x58, 0x01, 0xD0 });  // mov edx,eax; pop ecx; pop eax; add eax,edx
+    put({ 0xFF, 0xD0 });                         // call eax  -> eax = width (stdcall pops esi)
+    put({ 0x59, 0x01, 0x04, 0x24, 0x58, 0x5A }); // pop ecx; add [esp],eax; pop eax (x + width); pop edx
     *p++ = 0xE9; int32_t r = (int32_t)((site + 6) - (p + 4)); memcpy(p, &r, 4); p += 4;
     uint8_t j[6] = { 0xE9, 0, 0, 0, 0, 0x90 };
     r = (int32_t)(stub - (site + 5)); memcpy(j + 1, &r, 4);
