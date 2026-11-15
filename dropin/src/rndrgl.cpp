@@ -78,11 +78,115 @@ void Display_Shutdown()
     }
 }
 
+// ---- display scaling (DPI) ---------------------------------------------------------
+// The game declares no DPI awareness, so above 100 % display scaling Windows
+// virtualises its window: user32 then reports logical pixels to the engine while the
+// display mode it renders at stays physical. Window and back buffer no longer match,
+// and the picture reaches past the screen edges, so only part of it is visible.
+// Declaring the process DPI aware before it has ever seen a window makes every metric
+// physical again. [Display] DpiAware, and it has to happen in DllMain: winmm.dll is a
+// static import of DarkAthena.exe, so this runs before the game's entry point.
+static UINT SystemDpi()
+{
+    typedef UINT(WINAPI * GetDpiForSystem_t)(void);
+    if (HMODULE u = GetModuleHandleW(L"user32.dll"))
+        if (GetDpiForSystem_t f = (GetDpiForSystem_t)GetProcAddress(u, "GetDpiForSystem"))
+            return f();
+    if (HDC dc = GetDC(nullptr)) {
+        UINT d = (UINT)GetDeviceCaps(dc, LOGPIXELSX);
+        ReleaseDC(nullptr, dc);
+        return d ? d : 96;
+    }
+    return 96;
+}
+
+// Display mode against window metrics: if the two disagree, scaling is in play.
+static void LogDisplayMetrics()
+{
+    DEVMODEW dm = {};
+    dm.dmSize = sizeof(dm);
+    UINT dpi = SystemDpi();
+    int mw = GetSystemMetrics(SM_CXSCREEN), mh = GetSystemMetrics(SM_CYSCREEN);
+    if (EnumDisplaySettingsW(nullptr, ENUM_CURRENT_SETTINGS, &dm))
+        // An unaware process is told 96 dpi whatever the setting is, but its window
+        // metrics still come back scaled down, so the mismatch is what gives it away.
+        Log("display: mode %lux%lu @ %lu Hz, metrics %dx%d, %u dpi (%u %%)%s",
+            dm.dmPelsWidth, dm.dmPelsHeight, dm.dmDisplayFrequency, mw, mh, dpi, dpi * 100 / 96,
+            (int)dm.dmPelsWidth != mw ? "  <-- window metrics are virtualised" : "");
+    else
+        Log("display: metrics %dx%d, %u dpi (%u %%)", mw, mh, dpi, dpi * 100 / 96);
+}
+
+// Called from DllMain, so it stays to user32 calls that load nothing: anything that
+// may pull in a display driver belongs outside the loader lock (LogDisplayMetrics
+// runs later, from RndrGL_Patch).
+void Display_DpiAware()
+{
+    if (!g_cfg.dpiAware) {
+        Log("display: DPI awareness left alone (DpiAware=0)");
+        return;
+    }
+
+    HMODULE u = GetModuleHandleW(L"user32.dll");
+    typedef HANDLE(WINAPI * GetThreadCtx_t)(void);
+    typedef int(WINAPI * GetAwareness_t)(HANDLE);
+    typedef BOOL(WINAPI * SetCtx_t)(HANDLE);
+    GetThreadCtx_t getCtx = u ? (GetThreadCtx_t)GetProcAddress(u, "GetThreadDpiAwarenessContext") : nullptr;
+    GetAwareness_t getAw = u ? (GetAwareness_t)GetProcAddress(u, "GetAwarenessFromDpiAwarenessContext") : nullptr;
+    SetCtx_t setCtx = u ? (SetCtx_t)GetProcAddress(u, "SetProcessDpiAwarenessContext") : nullptr;
+
+    // 0 unaware, 1 system aware, 2 per monitor aware, -1 = cannot tell (before Win10 1607).
+    // Already aware means an application manifest or the HIGHDPIAWARE compatibility flag on
+    // the exe got there first; setting it again would only fail, so leave it be.
+    int aw = (getCtx && getAw) ? getAw(getCtx()) : -1;
+    if (aw > 0) {
+        Log("display: already DPI aware (%s, from a manifest or the compatibility flag)",
+            aw == 2 ? "per monitor" : "system");
+        return;
+    }
+
+    if (setCtx && setCtx((HANDLE)-4))          // DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+        Log("display: DPI aware (per monitor)");
+    else if (SetProcessDPIAware())
+        Log("display: DPI aware (system)");
+    else
+        Log("display: WARNING DPI awareness not set (error %lu); above 100 %% display "
+            "scaling the picture can reach past the screen edges", GetLastError());
+}
+
+// The window the engine really gets, for reports of a cut off or shifted picture.
+static HWND WINAPI Hook_CreateWindowExA(DWORD ex, LPCSTR cls, LPCSTR name, DWORD style,
+                                        int x, int y, int w, int h, HWND parent,
+                                        HMENU menu, HINSTANCE inst, LPVOID param)
+{
+    HWND wnd = CreateWindowExA(ex, cls, name, style, x, y, w, h, parent, menu, inst, param);
+    static int logged;
+    if (wnd && logged++ < 2) {
+        RECT c = {}, r = {};
+        GetClientRect(wnd, &c);
+        GetWindowRect(wnd, &r);
+        MONITORINFO mi = { sizeof(mi) };
+        GetMonitorInfoW(MonitorFromWindow(wnd, MONITOR_DEFAULTTONEAREST), &mi);
+        typedef UINT(WINAPI * GetDpiForWindow_t)(HWND);
+        UINT dpi = 0;
+        if (HMODULE u = GetModuleHandleW(L"user32.dll"))
+            if (GetDpiForWindow_t f = (GetDpiForWindow_t)GetProcAddress(u, "GetDpiForWindow"))
+                dpi = f(wnd);
+        Log("rndrgl: window asked %dx%d, client %ldx%ld at %ld,%ld, monitor %ldx%ld, %u dpi",
+            w, h, c.right, c.bottom, r.left, r.top,
+            mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top,
+            dpi ? dpi : SystemDpi());
+    }
+    return wnd;
+}
+
 void RndrGL_Patch(HMODULE r)
 {
+    LogDisplayMetrics();
     g_hdr = IsHdrActive();
     Log("rndrgl: Windows HDR %s", g_hdr ? "ON" : "off");
     PatchIAT(r, "gdi32.dll", "SetDeviceGammaRamp", (void*)Hook_SetDeviceGammaRamp);
+    PatchIAT(r, "user32.dll", "CreateWindowExA", (void*)Hook_CreateWindowExA);
 
     // EnumDisplaySettingsA loop in ModeList_Init stops after 512 modes; a current
     // system reports ~650 and 3840x2160 sits near the end. 512 -> 4096.

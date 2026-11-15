@@ -5,6 +5,8 @@
 // cache folder and served in place of the originals. The installation itself is
 // never modified.
 #pragma once
+// Shown in the first line of AodaFix.log, so an incoming log says which build it was.
+#define AODAFIX_VERSION "1.1.0"
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
@@ -29,6 +31,7 @@ struct Config {
     int  hintSize;        // size tag for the menu button hints (Weiterspielen/Zurueck), 0 = original (35)
     int  hintIconSize;    // visible icon size inside the 32x32 hint texture
     // display
+    int  dpiAware;        // 1 = declare the process DPI aware before it sees a window
     int  borderless;      // 1 = borderless full-monitor window, no work-area clamp
     int  fullViewport;    // 1 = viewport covers the whole window (no letterbox)
     int  modeList;        // 1 = enumerate up to 4096 display modes (4K becomes visible)
@@ -84,4 +87,5 @@ void EnvCfg_Prepare();                            // Environment.cfg sanity
 void Rumble_Init();
 void __stdcall Rumble_Play(int id);
 void Rumble_Shutdown(bool callXInput);   // false on process exit
+void Display_DpiAware();                          // display scaling, before any window exists
 void Display_Shutdown();

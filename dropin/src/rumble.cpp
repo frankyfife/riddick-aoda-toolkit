@@ -1,4 +1,5 @@
-// Controller vibration (port of ../rumble/RiddickRumble.c).
+// Controller vibration. Grown out of the standalone RiddickRumble.dll the Python
+// launcher used to install; that helper is gone, this is the whole thing now.
 //
 // The PC port ships the complete envelope data (Content\Feedback\feedback.xrg,
 // byte-identical to the Xbox 360 file) but no output stage: GameClasses' rumble

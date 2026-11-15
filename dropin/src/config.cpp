@@ -42,6 +42,7 @@ void ConfigLoad()
     g_cfg.menuPlatform = !_wcsicmp(mp.c_str(), L"pc") ? 0 : !_wcsicmp(mp.c_str(), L"ps3") ? 4
                        : !_wcsicmp(mp.c_str(), L"keep") ? -1 : 3;
 
+    g_cfg.dpiAware     = GetInt(L"Display", L"DpiAware", 1);
     g_cfg.borderless   = GetInt(L"Display", L"Borderless", 1);
     g_cfg.fullViewport = GetInt(L"Display", L"FullViewport", 0);
     g_cfg.modeList     = GetInt(L"Display", L"AllDisplayModes", 1);
@@ -63,9 +64,9 @@ void ConfigLoad()
     g_cfg.fileLog = GetInt(L"Debug", L"FileLog", 0);
     g_cfg.textLog = GetInt(L"Debug", L"TextLog", 0);
 
-    Log("config: buttons=%d icons=%d texts=%d help=0x%02X menu=%d | borderless=%d viewport=%d modes=%d desktop=%d gamma=%d | "
+    Log("config: buttons=%d icons=%d texts=%d help=0x%02X menu=%d | dpi=%d borderless=%d viewport=%d modes=%d desktop=%d gamma=%d | "
         "shaderfix=%d shadermode=%d aimassist=%d | rumble=%d gain=%.2f swap=%d",
         g_cfg.xboxPrompts, g_cfg.colorIcons, g_cfg.menuTexts, g_cfg.helpButton, g_cfg.menuPlatform,
-        g_cfg.borderless, g_cfg.fullViewport, g_cfg.modeList, g_cfg.desktopMode, g_cfg.gammaRamp,
+        g_cfg.dpiAware, g_cfg.borderless, g_cfg.fullViewport, g_cfg.modeList, g_cfg.desktopMode, g_cfg.gammaRamp,
         g_cfg.shaderFix, g_cfg.shaderMode, g_cfg.aimAssist, g_cfg.rumble, g_cfg.rumbleGain, g_cfg.rumbleSwap);
 }

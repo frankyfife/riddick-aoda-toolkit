@@ -44,13 +44,14 @@ of the originals. No Python, no launcher, no modified game file.
 **Install:** copy `winmm.dll` and `AodaFix.ini` to `<Game>\System\Win32_x86\`.
 **Remove:** delete both files and the `AodaFix_cache` folder.
 
-* If you used the launcher before, run **Revert everything** there first - the
-  drop-in only recognises the original files.
+* If an older version of this project patched your installation in place, put
+  the original files back first (copy `<Game>\_LauncherBackup\` over it). The
+  drop-in only recognises the originals.
 * All settings are in `AodaFix.ini` with comments, a log is written to
   `AodaFix.log`.
 
 **Build:** `dropin\build.cmd` (MSVC Build Tools 2022, Python 3 with `pefile`).
-`python dropin\tools\selftest.py <original tree> <launcher-patched tree> <work dir>`
+`python dropin\tools\selftest.py <original tree> <script-patched tree> <work dir>`
 maps the game modules without running them, applies the drop-in and compares
 the result with what the Python scripts write.
 
@@ -83,6 +84,16 @@ the game fell back to 1920×1440 (4:3, hence the bars). The limit is raised, the
 window is borderless across the whole monitor, and the drop-in sets `VID_MODE`
 to the desktop mode.
 
+**Display scaling** *(drop-in)*. The game declares no DPI awareness, so above
+100 % scaling Windows virtualises its window: user32 reports logical pixels to
+the engine while the display mode it renders at stays physical. Window and back
+buffer no longer match and the picture reaches past the screen edges, so only
+part of it is visible. The drop-in declares the process DPI aware in `DllMain`,
+before the game has a window (`[Display] DpiAware`). An exe that already carries
+the *Override high DPI scaling behaviour* compatibility flag is left as it is.
+`AodaFix.log` notes the display mode, the window, the monitor and the DPI, which
+is what a report of a cut off picture needs.
+
 **Shader compatibility.** `System\GL\HLInclude_GLSL.xrg` uses the
 three-argument `texture2D`/`textureCube`, which is not legal in a fragment
 shader; current drivers reject it and the game aborts in
@@ -96,47 +107,36 @@ value is stored but never read. The real switch is the weapon flag `autoaim` on
 **Windows HDR** *(drop-in)*. With HDR on, the game's gamma ramp is ignored and
 the original ramp is restored on exit.
 
-**Graphics settings** *(launcher)*. Every key the engine really reads from
-`Environment.cfg`, with the module that reads it and its default, both taken
-from the binaries rather than guessed.
+**Graphics settings.** Every key the engine really reads from `Environment.cfg`,
+with the module that reads it and its default, is listed in
+[docs/FINDINGS.md](docs/FINDINGS.md), read off the binaries rather than guessed.
+The drop-in itself only touches `VID_MODE` and an out-of-range `XR_SHADERMODE`;
+the rest you set in the file yourself.
 
 ---
 
-## Launcher (alternative)
+## The patch scripts
 
-The launcher writes the same changes into the game files - useful to inspect a
-single change, or where a proxy DLL is not wanted.
+`patches/` holds the original Python patches, one per concern, which write the
+same changes into the game files instead of into memory. They are kept for two
+reasons: they are the reference the drop-in is checked against, byte for byte, by
+`dropin/tools/selftest.py`, and each one documents a single change in isolation.
+Every one takes a path and has `--apply` and `--restore`. One exception: the
+rumble hook in `patch_gamepad_glyphs.py` calls a helper DLL that is no longer
+shipped, and falls back to a stub that does nothing if it is absent. The drop-in
+has that code built in.
 
-* Requirements: Windows, Python 3 with tkinter; **Pillow** for the fonts
-  component (`pip install pillow`); MSVC Build Tools only to rebuild the
-  vibration DLL (a compiled copy is included).
-* Start `RiddickLauncher.cmd` and pick `<Game>\System\Win32_x86\DarkAthena.exe`.
-  The choice and the interface language are remembered in
-  `%LOCALAPPDATA%\RiddickLauncher\launcher.json`.
-* Before a file is changed for the first time it is copied to
-  `<Game>\_LauncherBackup\`; **Revert everything** restores all copies and
-  removes anything that was added. `Environment.cfg` gets its own backup.
-
-| Component | What it touches |
-|---|---|
-| `kern`    | GameClasses, GameWorld, MSystem, CubeWnd.xrg, CubeInv0.xrg |
-| `grafik`  | RndrGL.dll - borderless window, 4K mode list, viewport |
-| `schrift` | Text.xfc, Subtitle.xfc, Headings.xfc - coloured button icons |
-| `texte`   | Frontend / StringsX360 string tables |
-| `rumble`  | RiddickRumble.dll + .ini |
-
-Each component is produced by the scripts in `patches/`, which also run on their
-own - every one takes a path and has `--apply` and `--restore`.
+They are no longer the way to install anything. Up to version 1.0.1 a Python
+launcher drove them; it has been dropped now that the drop-in covers the same
+ground without touching a game file. What it knew about `Environment.cfg` is in
+[docs/FINDINGS.md](docs/FINDINGS.md).
 
 ## Layout
 
 ```
 dropin/               AodaFix - the drop-in winmm.dll (C++), build script, self test
-RiddickLauncher.pyw   launcher interface
-rmod.py               launcher logic: paths, backups, components, settings
-sprachen.py           German / English strings
-patches/              the patch scripts, one per concern
-rumble/               vibration DLL for the launcher, C source and a prebuilt binary
+patches/              the Python patches, one per concern, and the self test's
+                      reference for what each change has to produce
 tools/                fix_riddick_dds.py - repairs DDS files written by the
                       game's own exporter (wrong FourCC, mip count off by one)
 docs/                 what the reverse engineering turned up

@@ -59,6 +59,77 @@ default `640 480 32 85`, separators space or comma. Only the literal word
 `desktop` branches off into the windowed path — which is where the border and
 letterbox trouble comes from.
 
+## Display scaling
+
+`DarkAthena.exe` carries a manifest, but without a `dpiAware` element, so the
+process starts out DPI unaware and Windows virtualises it above 100 % display
+scaling. The engine then mixes two coordinate systems: `GetMonitorInfo` and
+`GetSystemMetrics` hand it logical pixels, while `EnumDisplaySettings` and the
+resolution it renders at are physical. Window and back buffer disagree by the
+scaling factor, and the picture reaches past the screen edges.
+
+`SetProcessDpiAwarenessContext` has to run before the process owns a window.
+`winmm.dll` is a static import of `DarkAthena.exe`, so the drop-in's `DllMain`
+runs during process initialisation, ahead of the entry point: early enough.
+The call fails once an awareness context is already set, which is the case with
+the `HIGHDPIAWARE` compatibility flag (`AppCompatFlags\Layers`) or a manifest,
+so the current context is read first and left alone if it is already aware.
+
+## Environment.cfg: the keys the engine really reads
+
+`%LOCALAPPDATA%\Atari\<game>\Environment.cfg`. Each default below was read off
+its call site, not guessed: the game fetches a key with
+`push <default> ; push "<KEY>" ; call [vtable+0x74]` (integer) or `+0x78` (float),
+so the default sits right in front of the name. The module named is the one that
+reads the key. Keys absent from the file fall back to exactly these values.
+
+| Key | What it is | Values | Read by | Default |
+|---|---|---|---|---|
+| `VID_VSYNC` | Vertical sync | 0 / 1 | RndrGL | `1` |
+| `R_ANTIALIAS` | Anti-aliasing | `1` off, `131074` 2x, `262148` 4x, `524296` 8x, `1048592` 16x | RndrGL | `1` |
+| `R_ANISOTROPY` | Anisotropic filtering | `1.000000` 1x, `2.000000` 2x, `4.000000` 4x, `8.000000` 8x, `16.000000` 16x | RndrGL | `1.0` |
+| `XR_SHADERMODE` | Shader level | `0` Auto, `1` 0.5, `2` 1.1, `3` 1.1, `4` 1.4, `5` 2.0, `6` 2.0++ | MXR | `0` |
+| `XR_CHARSHADOWS` | Character shadows | 0 / 1 | MXR | `1` |
+| `XR_SSAO` | Ambient occlusion (SSAO) | 0 / 1 | MXR | `0` |
+| `VIDEO_SSAO` | SSAO as remembered by the menu | 0 / 1 | GameClasses | `0` |
+| `XR_MOTIONBLUR_DOF` | Motion blur / depth of field | 0 / 1 | MXR | `1` |
+| `XR_FLARES` | Lens flares | 0 / 1 | MXR | `0` |
+| `XR_WALLMARKS` | Bullet marks | 0 / 1 | MXR | `1` |
+| `XR_SOFTSTENCIL` | Soft shadow edges | 0 / 1 | MXR | `0` |
+| `R_DYNAMICLOADMIPS` | Stream mip levels | 0 / 1 | GameClasses | `1` |
+| `VID_GAMMADISABLE` | Disable gamma correction | 0 / 1 | RndrGL | `0` |
+| `GL_SHADERCOMPILETHREADS` | Shader compiler threads | number | RndrGL | `1` |
+| `XR_MAXTEXTURES` | Texture limit | number | MSystem | `32768` |
+| `XR_MAXVBCOUNT` | Vertex buffer limit | number | MXR | `16384` |
+| `R_BACKBUFFERFORMAT` | Back buffer format (raw) | number | RndrGL | `4194304` |
+| `XR_SURFOPTIONS` | Surface options (bit field) | number | MXR | `16` |
+
+`R_ANTIALIAS` is two 16 bit halves (`sar edx,16` / `and eax,0xffff`, RndrGL
+`0x1005c6d0`): 1 means off, the smaller half wins, and it is clamped to what the
+hardware reports, so `(n<<16)|n` is the sensible form. `R_ANISOTROPY` is handed to
+the driver and clamped there. The shader level names come from the game's own
+string table, `SYS_SHADERMODE0..6`.
+
+Further keys the binaries fetch, without a default worth quoting (the call site
+passes an empty string or the value only matters when the key is present):
+
+| Key | What it is | Read by |
+|---|---|---|
+| `GL_ADVPIXELFORMAT` | Extended pixel format | RndrGL |
+| `GL_SINGLEFBO` | Single framebuffer object | RndrGL |
+| `GL_TEXTUREDEPTH` | Texture depth | RndrGL |
+| `GL_DETACHMSAABUFFERS` | Detach MSAA buffers | RndrGL |
+| `GL_DOASYNCSHADERCOMPILE` | Compile shaders asynchronously | RndrGL |
+| `GL_CLEARRENDERTEX` | Clear render textures | RndrGL |
+| `GL_BROKENCLIPPLANES` | Work around clip planes | RndrGL |
+| `GL_ALLOWD3DHACK` | Allow the D3D workaround | RndrGL |
+| `GL_EXTDISABLE` | Disable GL extensions | RndrGL |
+| `XR_FORCE_POT_TEXTURES` | Force power-of-two textures | MXR |
+| `XR_SPLINETESSLEVEL` | Spline tessellation | MXR |
+| `XR_LODSCALE` | Detail distance (LOD scale) | MXR |
+| `XR_LODOFFSET` | Detail bias (LOD offset) | MXR |
+| `R_PICMIP0` | Texture mip level, group 0 | RndrGL/MXR |
+
 ## Vibration
 
 Everything is present except the output.

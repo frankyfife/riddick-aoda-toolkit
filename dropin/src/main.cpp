@@ -120,8 +120,10 @@ BOOL APIENTRY DllMain(HMODULE h, DWORD reason, LPVOID reserved)
         CreateDirectoryW(g_cacheDir, nullptr);
         LogInit(g_dllDir);
         if (GetEnvironmentVariableW(L"AODAFIX_SELFTEST", nullptr, 0)) { Log("self-test mode"); return TRUE; }
-        Log("AodaFix loaded, game root %ls", g_gameRoot);
+        Log("AodaFix " AODAFIX_VERSION " loaded, game root %ls", g_gameRoot);
         ConfigLoad();
+        // before anything asks user32 for a size, and before the game has a window
+        SafeRun(Display_DpiAware, "dpi awareness");
         SafeRun(EnvCfg_Prepare, "envcfg");
         SafeRun(DataGen_Run, "datagen");
         SafeRun(FontGen_Run, "fontgen");

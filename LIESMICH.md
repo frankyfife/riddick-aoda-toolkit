@@ -45,13 +45,14 @@ kein Launcher, keine veränderte Spieldatei.
 **Einbau:** `winmm.dll` und `AodaFix.ini` nach `<Spiel>\System\Win32_x86\`
 kopieren. **Ausbau:** beide Dateien und den Ordner `AodaFix_cache` löschen.
 
-* Wer vorher den Launcher benutzt hat, setzt dort zuerst **Alles
-  zurücksetzen** - die Drop-in erkennt nur die Originaldateien.
+* Wurde die Installation von einer älteren Fassung dieses Projekts direkt
+  geändert, zuerst die Originale zurückholen (`<Spiel>\_LauncherBackup\`
+  darüberkopieren). Die Drop-in erkennt nur die Originaldateien.
 * Alle Einstellungen stehen kommentiert in `AodaFix.ini`, ein Protokoll in
   `AodaFix.log`.
 
 **Bauen:** `dropin\build.cmd` (MSVC Build Tools 2022, Python 3 mit `pefile`).
-`python dropin\tools\selftest.py <Originalbaum> <vom Launcher gepatchter Baum> <Arbeitsordner>`
+`python dropin\tools\selftest.py <Originalbaum> <von den Skripten gepatchter Baum> <Arbeitsordner>`
 lädt die Spielmodule, ohne sie auszuführen, wendet die Drop-in an und
 vergleicht das Ergebnis mit dem, was die Python-Skripte schreiben.
 
@@ -87,6 +88,17 @@ fiel auf 1920×1440 zurück (4:3, daher die Balken). Die Grenze ist angehoben,
 das Fenster randlos über den ganzen Monitor, und die Drop-in setzt `VID_MODE`
 auf den Desktop-Modus.
 
+**Anzeigeskalierung** *(Drop-in)*. Das Spiel erklärt sich nicht als
+DPI-bewusst, also vergrößert Windows ab 125 Prozent Skalierung sein Fenster:
+user32 meldet der Engine logische Pixel, der gerenderte Anzeigemodus bleibt
+physisch. Fenster und Bildpuffer passen nicht mehr zusammen, das Bild reicht
+über den Bildschirmrand hinaus, sichtbar ist nur ein Teil. Die Drop-in erklärt
+den Prozess in `DllMain` als DPI-bewusst, bevor das Spiel ein Fenster hat
+(`[Display] DpiAware`). Trägt die exe schon den Kompatibilitätsschalter
+*Hohe DPI-Skalierung überschreiben*, bleibt alles, wie es ist. `AodaFix.log`
+hält Anzeigemodus, Fenster, Monitor und DPI fest, also genau das, was eine
+Meldung über ein abgeschnittenes Bild braucht.
+
 **Shader-Verträglichkeit.** `System\GL\HLInclude_GLSL.xrg` benutzt die
 dreiargumentige Form von `texture2D`/`textureCube`, die im Fragment-Shader
 nicht zulässig ist; heutige Treiber weisen sie ab, und das Spiel bricht in
@@ -101,48 +113,36 @@ Schalter ist die Waffenflagge `autoaim` an 23 Waffen.
 **Windows-HDR** *(Drop-in)*. Bei eingeschaltetem HDR wird die Gammarampe des
 Spiels ignoriert und beim Beenden die ursprüngliche wiederhergestellt.
 
-**Grafikeinstellungen** *(Launcher)*. Alle Schlüssel, die die Engine wirklich
-aus der `Environment.cfg` liest, mit dem auswertenden Modul und dem
-Vorgabewert - beides aus den Binärdateien abgelesen, nicht geraten.
+**Grafikeinstellungen.** Alle Schlüssel, die die Engine wirklich aus der
+`Environment.cfg` liest, mit auswertendem Modul und Vorgabewert, stehen in
+[docs/FINDINGS.md](docs/FINDINGS.md), aus den Binärdateien abgelesen und nicht
+geraten. Die Drop-in selbst fasst nur `VID_MODE` an und ein `XR_SHADERMODE`
+ausserhalb des gültigen Bereichs; alles andere trägt man selbst in die Datei ein.
 
 ---
 
-## Launcher (Alternative)
+## Die Eingriffsskripte
 
-Der Launcher schreibt dieselben Änderungen in die Spieldateien - nützlich, um
-einen einzelnen Eingriff anzusehen, oder wo keine Proxy-DLL gewünscht ist.
+Unter `patches/` liegen die ursprünglichen Python-Eingriffe, je Thema eines.
+Sie schreiben dieselben Änderungen in die Spieldateien statt in den Speicher.
+Sie bleiben aus zwei Gründen: `dropin/tools/selftest.py` prüft die Drop-in
+byteweise gegen sie, und jedes Skript zeigt einen Eingriff für sich allein.
+Jedes nimmt einen Pfad und kennt `--apply` und `--restore`. Eine Ausnahme: der
+Vibrationshaken in `patch_gamepad_glyphs.py` ruft eine Hilfs-DLL auf, die nicht
+mehr mitgeliefert wird; fehlt sie, greift ein Stummel, der nichts tut. Die
+Drop-in hat diesen Code eingebaut.
 
-* Voraussetzungen: Windows, Python 3 mit tkinter; **Pillow** für den
-  Bestandteil Schrift (`pip install pillow`); MSVC Build Tools nur, um die
-  Vibrations-DLL selbst zu bauen (eine übersetzte Fassung liegt bei).
-* `RiddickLauncher.cmd` starten und `<Spiel>\System\Win32_x86\DarkAthena.exe`
-  wählen. Die Wahl und die Sprache der Oberfläche werden in
-  `%LOCALAPPDATA%\RiddickLauncher\launcher.json` gemerkt.
-* Jede Datei bekommt vor der ersten Änderung eine Kopie unter
-  `<Spiel>\_LauncherBackup\`; **Alles zurücksetzen** spielt alle Kopien zurück
-  und entfernt Hinzugefügtes. Die `Environment.cfg` bekommt eine eigene
-  Sicherung.
-
-| Bestandteil | Was angefasst wird |
-|---|---|
-| `kern`    | GameClasses, GameWorld, MSystem, CubeWnd.xrg, CubeInv0.xrg |
-| `grafik`  | RndrGL.dll - randloses Fenster, 4K-Modusliste, Viewport |
-| `schrift` | Text.xfc, Subtitle.xfc, Headings.xfc - farbige Knopfsymbole |
-| `texte`   | Frontend- und StringsX360-Tabellen |
-| `rumble`  | RiddickRumble.dll + .ini |
-
-Jeder Bestandteil wird von den Skripten unter `patches/` erzeugt. Die laufen
-auch einzeln - jedes nimmt einen Pfad und kennt `--apply` und `--restore`.
+Zum Einbauen sind sie nicht mehr gedacht. Bis Fassung 1.0.1 steuerte sie ein
+Python-Launcher; der ist entfallen, seit die Drop-in dasselbe leistet, ohne eine
+Spieldatei anzufassen. Was er über die `Environment.cfg` wusste, steht in
+[docs/FINDINGS.md](docs/FINDINGS.md).
 
 ## Aufbau
 
 ```
 dropin/               AodaFix - die Drop-in-winmm.dll (C++), Build-Skript, Selbsttest
-RiddickLauncher.pyw   Oberfläche des Launchers
-rmod.py               Logik des Launchers: Pfade, Sicherungen, Bestandteile, Einstellungen
-sprachen.py           Deutsch / English
-patches/              die Eingriffe, je Thema ein Skript
-rumble/               Vibrations-DLL für den Launcher, C-Quelltext und übersetzte Fassung
+patches/              die Python-Eingriffe, je Thema einer, zugleich die
+                      Vergleichsgrundlage des Selbsttests
 tools/                fix_riddick_dds.py - repariert DDS-Dateien, die der
                       Exporter des Spiels falsch schreibt (falscher FourCC,
                       Mip-Zähler um eins zu hoch)

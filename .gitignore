@@ -1,7 +1,6 @@
 # Nichts aus dem Spiel gehoert ins Projekt.
 # Nothing from the game belongs in this repository.
 *.dll
-!rumble/bin/RiddickRumble.dll
 *.xrg
 *.xfc
 *.xtc
@@ -17,7 +16,6 @@ __pycache__/
 *.obj
 *.lib
 *.exp
-RiddickRumble.log
 
 # Drop-in build output and runtime files
 dropin/build/

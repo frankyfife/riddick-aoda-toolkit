@@ -1,6 +1,6 @@
 // Generated data files: menu definitions, string tables, weapon flags, shader
 // include. Ports of ../patches/{rename_pad_keys,enable_buttondesc,pc_button_icons,
-// menu_texte,aim_assist}.py and the GLSL fix of rmod.py. Sources are read from
+// menu_texte,aim_assist}.py, plus the GLSL fix. Sources are read from
 // the installation, results go to AodaFix_cache and are served by files.cpp.
 // All edits are byte-exact: CRLF line endings are counted before and after.
 #include "common.h"

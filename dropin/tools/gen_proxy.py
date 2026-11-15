@@ -1,5 +1,6 @@
 # Generates the 32-bit winmm proxy: .def, naked jump stubs, table of names.
 # Source of the export list is the 32-bit system winmm.dll (SysWOW64).
+import io
 import os
 import sys
 
@@ -24,10 +25,25 @@ for i, e in enumerate(syms):
         names.append("(const char*)(uintptr_t)%d" % e.ordinal)
     stubs.append('extern "C" __declspec(naked) void %s() { __asm jmp dword ptr [g_proxy_table + %d] }'
                  % (stub, i * 4))
-open(os.path.join(out, "winmm.def"), "w").write("\n".join(d) + "\n")
-open(os.path.join(out, "proxy_stubs.cpp"), "w").write("\n".join(stubs) + "\n")
-open(os.path.join(out, "proxy_names.h"), "w").write(
-    "// generated\n#pragma once\n#include <stdint.h>\n#define PROXY_COUNT %d\n"
-    "static const char* const g_proxy_names[PROXY_COUNT] = {\n  %s\n};\n"
-    % (len(names), ",\n  ".join(names)))
+
+
+# Line endings stay LF (the repository normalises to LF), and a file whose content
+# has not changed is left untouched, so a build neither dirties the working tree
+# nor forces a recompile.
+def emit(name, text):
+    path = os.path.join(out, name)
+    if os.path.exists(path):
+        with io.open(path, "r", encoding="utf-8", newline="") as f:
+            if f.read() == text:
+                return
+    with io.open(path, "w", encoding="utf-8", newline="") as f:
+        f.write(text)
+
+
+emit("winmm.def", "\n".join(d) + "\n")
+emit("proxy_stubs.cpp", "\n".join(stubs) + "\n")
+emit("proxy_names.h",
+     "// generated\n#pragma once\n#include <stdint.h>\n#define PROXY_COUNT %d\n"
+     "static const char* const g_proxy_names[PROXY_COUNT] = {\n  %s\n};\n"
+     % (len(names), ",\n  ".join(names)))
 print("exports", len(names))
