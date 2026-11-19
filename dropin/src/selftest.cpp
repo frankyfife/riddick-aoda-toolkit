@@ -28,6 +28,9 @@ extern "C" int __stdcall AodaFix_SelfTest(const wchar_t* gameRoot, const wchar_t
     // DLL with HintSize set overrides this, to test the extra hook)
     wchar_t ini[MAX_PATH]; swprintf_s(ini, L"%s\\AodaFix.ini", g_dllDir);
     if ((int)GetPrivateProfileIntW(L"Prompts", L"HintSize", -1, ini) < 0) g_cfg.hintSize = 0;
+    // likewise the help button: its call in the hb stub and the detour in MSystem
+    // have no counterpart in the toolkit
+    if ((int)GetPrivateProfileIntW(L"Prompts", L"HelpButtonOpensHelp", -1, ini) < 0) g_cfg.helpActive = 0;
     DataGen_Run();
     FontGen_Run();
 
@@ -51,9 +54,9 @@ extern "C" int __stdcall AodaFix_SelfTest(const wchar_t* gameRoot, const wchar_t
         OnModuleLoaded(h, name);
         Dump(base + L".patched.bin", h, size);
         if (g_lastCave) Dump(base + L".cave.bin", g_lastCave, g_lastCaveSize);
-        if (meta) fprintf(meta, "%s base=0x%08X size=0x%X cave=0x%08X cavesize=%u rumble_play=0x%08X\n", name,
+        if (meta) fprintf(meta, "%s base=0x%08X size=0x%X cave=0x%08X cavesize=%u rumble_play=0x%08X help=0x%02X\n", name,
                           (unsigned)(uintptr_t)h, size, (unsigned)(uintptr_t)g_lastCave, (unsigned)g_lastCaveSize,
-                          (unsigned)(uintptr_t)&Rumble_Play);
+                          (unsigned)(uintptr_t)&Rumble_Play, (unsigned)g_cfg.helpButton);
         FreeLibrary(h);
     }
     if (meta) fclose(meta);

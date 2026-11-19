@@ -63,8 +63,14 @@ vergleicht das Ergebnis mit dem, was die Python-Skripte schreiben.
 **Xbox-360-Knopfsymbole überall.** Menüs, Eckhinweise und Fließtext benutzen
 die Originalgrafiken der 360, die im PC-Build mitgeliefert, aber nie gezeigt
 werden - in den kräftigen Farben statt der blassen `_32`-Fassungen.
-Tastennamen in Infotexten werden zu Symbolen. Die Hilfe liegt auf L3 mit einem
-eindeutigen Stick-Symbol.
+Tastennamen in Infotexten werden zu Symbolen. Die beiden Stick-Klicks haben
+je ein eigenes Symbol, statt sich eines zu teilen.
+
+**Hilfe auf dem Controller** *(Drop-in)*. Die Hilfe-Leiste zeigt B wie auf der
+Konsole, und B öffnet die Hilfe, solange die Leiste zu sehen ist; sonst tut B,
+was darauf liegt. Keine Belegung wird geändert, F1 geht weiter. Ein anderer
+Knopf lässt sich mit `HelpButton` wählen, `HelpButtonOpensHelp=0` belässt es
+beim Symbol.
 
 **Konsolenmenüs.** Sechs Bytes in `MSystem.dll` entscheiden, welche
 `PLATFORM_`-Symbole der Registry-Präprozessor setzt: das Xbox-360-Würfelmenü

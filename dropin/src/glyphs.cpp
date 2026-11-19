@@ -1,8 +1,10 @@
 // Xbox 360 button glyphs in the key hints of GameClasses / GameWorld.
 //
 // In-memory port of ../patches/patch_gamepad_glyphs.py with the options the
-// launcher uses (--prefer-pad --help-button <cfg> --no-inline --no-skip-fix
+// launcher used (--prefer-pad --help-button <cfg> --no-inline --no-skip-fix
 // --no-help-rebind). CRC_Util2D is linked into both DLLs, so both get patched.
+// The help button itself is handled in helpkey.cpp, without any rebinding; the
+// hb stub only tells it that the help bar is on screen.
 // Every entry point is found by byte pattern; if anything does not match, the
 // module is left completely untouched.
 //
@@ -330,6 +332,13 @@ bool BuildCave(Asm& a, const Sites& s, bool rumble)
     // hb - help bar: icon index = pad code of the help button
     if (s.hb) {
         a.label("hb");
+        if (g_cfg.helpActive) {
+            // the flags are dead here (sub esp,8 follows), saved all the same like rb does
+            a.hex("60 9c");                                // pushad; pushfd
+            a.hex("b8"); a.u32((uint32_t)(uintptr_t)&HelpKey_BarDrawn);
+            a.hex("ff d0");                                // call eax (stdcall, no arguments)
+            a.hex("9d 61");
+        }
         if (g_cfg.hintSize > 0) { a.hex("c7 05"); a.u32((uint32_t)(uintptr_t)&g_helpBarFlag); a.u32(1); }   // mov dword [flag],1
         a.hex("68"); a.u32((uint32_t)g_cfg.helpButton);
         a.hex("83 ec 08");
@@ -476,6 +485,7 @@ void Glyphs_Patch(HMODULE m, const char* name)
     }
     if (g_cfg.rumble && s.rb) JmpAt(s.rb, a.lab["rb"], 9);
     if (prompts && g_cfg.hintSize > 0) HintIconAspect(m, name);
+    if (prompts && s.hb && g_cfg.helpActive) HelpKey_Attach(m);
     Log("glyphs: %s patched (prompts=%d help bar=%d rumble=%d, cave %u bytes at %p)",
         name, prompts, s.hb != nullptr, g_cfg.rumble && s.rb, (unsigned)a.buf.size(), cave);
 }

@@ -106,7 +106,7 @@ def main():
             fail("mapped at 0x%08x, not at the preferred base - compare skipped" % m["base"])
             continue
         s = pgg.locate(pe)
-        a = pgg.build_cave(m["cave"], s, prefer_pad=True, diagnose=False, probe=False, help_code=0xA6,
+        a = pgg.build_cave(m["cave"], s, prefer_pad=True, diagnose=False, probe=False, help_code=m["help"],
                            calibrate=False, inline=False, trace_reload=False, help_rebind=False,
                            stick_icons=True, rumble=False)
         code = a.resolve()

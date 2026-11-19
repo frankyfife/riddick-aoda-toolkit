@@ -62,7 +62,14 @@ the result with what the Python scripts write.
 **Xbox 360 button prompts everywhere.** Menus, corner hints and inline text use
 the original 360 artwork that ships with the game but is never shown on PC, in
 its full colours instead of the washed-out `_32` variants. Button names in info
-texts become icons. Help sits on L3 with an unambiguous stick icon.
+texts become icons. The two stick clicks get icons of their own instead of
+sharing one.
+
+**Help on the controller** *(drop-in)*. The help bar shows B, as on the console,
+and B opens the help while that bar is on screen; the rest of the time B does
+what it is bound to. No binding is changed and F1 keeps working. Another button
+can be chosen with `HelpButton`, and `HelpButtonOpensHelp=0` leaves it at the
+icon.
 
 **Console menus.** Six bytes in `MSystem.dll` decide which `PLATFORM_` symbols
 the registry preprocessor defines - the Xbox 360 cube menu with its button

@@ -90,4 +90,5 @@ void MSystem_Patch(HMODULE ms)
 {
     if (g_cfg.xboxPrompts && g_cfg.colorIcons) RenamePadKeys(ms);   // the names are icon characters
     PlatformSwitch(ms);
+    HelpKey_HookConsole(ms);
 }

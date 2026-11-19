@@ -24,6 +24,8 @@ struct PadName { const wchar_t* name; int code; };
 static const PadName kPad[] = {
     { L"A", 0xA0 }, { L"B", 0xA1 }, { L"X", 0xA2 }, { L"Y", 0xA3 }, { L"START", 0xA4 }, { L"BACK", 0xA5 },
     { L"L3", 0xA6 }, { L"R3", 0xA7 }, { L"LB", 0xA8 }, { L"RB", 0xA9 }, { L"LT", 0xAA }, { L"RT", 0xAB },
+    // what the same buttons are called elsewhere
+    { L"SELECT", 0xA5 }, { L"LS", 0xA6 }, { L"RS", 0xA7 }, { L"L1", 0xA8 }, { L"R1", 0xA9 }, { L"L2", 0xAA }, { L"R2", 0xAB },
 };
 
 void ConfigLoad()
@@ -35,9 +37,14 @@ void ConfigLoad()
     g_cfg.menuTexts   = GetInt(L"Prompts", L"MenuTexts", 1);
     g_cfg.hintSize    = std::min(35, std::max(0, GetInt(L"Prompts", L"HintSize", 20)));
     g_cfg.hintIconSize = std::min(32, std::max(8, GetInt(L"Prompts", L"HintIconSize", 22)));
-    std::wstring hb = GetStr(L"Prompts", L"HelpButton", L"L3");
-    g_cfg.helpButton = 0xA6;
+    std::wstring hb = GetStr(L"Prompts", L"HelpButton", L"B");
+    g_cfg.helpButton = 0;
     for (auto& p : kPad) if (!_wcsicmp(p.name, hb.c_str())) g_cfg.helpButton = p.code;
+    if (!g_cfg.helpButton) {
+        g_cfg.helpButton = 0xA1;
+        Log("config: WARNING HelpButton=%ls is not a button name (A B X Y START BACK L3 R3 LB RB LT RT) - B is used", hb.c_str());
+    }
+    g_cfg.helpActive  = GetInt(L"Prompts", L"HelpButtonOpensHelp", 1);
     std::wstring mp = GetStr(L"Prompts", L"MainMenu", L"xbox");
     g_cfg.menuPlatform = !_wcsicmp(mp.c_str(), L"pc") ? 0 : !_wcsicmp(mp.c_str(), L"ps3") ? 4
                        : !_wcsicmp(mp.c_str(), L"keep") ? -1 : 3;
@@ -63,10 +70,11 @@ void ConfigLoad()
 
     g_cfg.fileLog = GetInt(L"Debug", L"FileLog", 0);
     g_cfg.textLog = GetInt(L"Debug", L"TextLog", 0);
+    g_cfg.padLog  = GetInt(L"Debug", L"PadLog", 0);
 
-    Log("config: buttons=%d icons=%d texts=%d help=0x%02X menu=%d | dpi=%d borderless=%d viewport=%d modes=%d desktop=%d gamma=%d | "
+    Log("config: buttons=%d icons=%d texts=%d help=0x%02X helpactive=%d menu=%d | dpi=%d borderless=%d viewport=%d modes=%d desktop=%d gamma=%d | "
         "shaderfix=%d shadermode=%d aimassist=%d | rumble=%d gain=%.2f swap=%d",
-        g_cfg.xboxPrompts, g_cfg.colorIcons, g_cfg.menuTexts, g_cfg.helpButton, g_cfg.menuPlatform,
+        g_cfg.xboxPrompts, g_cfg.colorIcons, g_cfg.menuTexts, g_cfg.helpButton, g_cfg.helpActive, g_cfg.menuPlatform,
         g_cfg.dpiAware, g_cfg.borderless, g_cfg.fullViewport, g_cfg.modeList, g_cfg.desktopMode, g_cfg.gammaRamp,
         g_cfg.shaderFix, g_cfg.shaderMode, g_cfg.aimAssist, g_cfg.rumble, g_cfg.rumbleGain, g_cfg.rumbleSwap);
 }

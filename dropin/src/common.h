@@ -6,7 +6,7 @@
 // never modified.
 #pragma once
 // Shown in the first line of AodaFix.log, so an incoming log says which build it was.
-#define AODAFIX_VERSION "1.1.0"
+#define AODAFIX_VERSION "1.1.1"
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
@@ -24,7 +24,8 @@ void Log(const char* fmt, ...);
 struct Config {
     // prompts / menus
     int  xboxPrompts;     // 1 = Xbox 360 button glyphs in hints, menus and texts
-    int  helpButton;      // pad code the help bar shows (0xA6 = L3)
+    int  helpButton;      // pad code the help bar shows (0xA1 = B, as on the console)
+    int  helpActive;      // 1 = that button opens the help while the help bar is on screen
     int  menuPlatform;    // 0 = PC cube menu, 3 = Xbox 360 (XENON), 4 = PS3, -1 = keep
     int  menuTexts;       // 1 = "PRESS (A)" on the title screen, no "PAUSE" overlay
     int  colorIcons;      // 1 = coloured button icons inside the fonts
@@ -48,6 +49,7 @@ struct Config {
     int  rumbleLog;
     int  fileLog;         // log every data file the engine opens
     int  textLog;         // log every distinct 2D text with scale and caller
+    int  padLog;          // log every pad event the console receives (never the keyboard)
 };
 extern Config g_cfg;
 extern wchar_t g_dllDir[MAX_PATH];
@@ -79,6 +81,9 @@ void Cache_Stamp(const std::wstring& out, const std::wstring& src, const char* v
 void OnModuleLoaded(HMODULE mod, const char* name);
 void MSystem_Patch(HMODULE msys);                 // pad key names, platform switch
 void Glyphs_Patch(HMODULE mod, const char* name); // GameClasses / GameWorld button glyphs
+void HelpKey_HookConsole(HMODULE msys);           // the help button opens the help (helpkey.cpp)
+void HelpKey_Attach(HMODULE gameClasses);
+void __stdcall HelpKey_BarDrawn();
 void TextLog_Patch(HMODULE mod, const char* name);
 void RndrGL_Patch(HMODULE rndr);                  // borderless window, mode list, viewport, gamma
 void DataGen_Run();                               // menus, strings, weapons, shader include
