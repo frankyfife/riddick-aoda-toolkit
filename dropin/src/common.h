@@ -6,7 +6,7 @@
 // never modified.
 #pragma once
 // Shown in the first line of AodaFix.log, so an incoming log says which build it was.
-#define AODAFIX_VERSION "1.1.1"
+#define AODAFIX_VERSION "1.1.2"
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
@@ -26,6 +26,8 @@ struct Config {
     int  xboxPrompts;     // 1 = Xbox 360 button glyphs in hints, menus and texts
     int  helpButton;      // pad code the help bar shows (0xA1 = B, as on the console)
     int  helpActive;      // 1 = that button opens the help while the help bar is on screen
+    int  padDelete;       // 1 = X deletes the last character on the name entry screen
+    int  textButtons;     // 1 = info and help texts name the pad button, not the key
     int  menuPlatform;    // 0 = PC cube menu, 3 = Xbox 360 (XENON), 4 = PS3, -1 = keep
     int  menuTexts;       // 1 = "PRESS (A)" on the title screen, no "PAUSE" overlay
     int  colorIcons;      // 1 = coloured button icons inside the fonts
@@ -42,6 +44,9 @@ struct Config {
     int  shaderFix;       // 1 = legal texture2D/textureCube calls in HLInclude_GLSL.xrg
     int  shaderMode;      // -1 = keep (out-of-range values are still fixed), 0..6 force
     int  aimAssist;       // 1 = keep weapon autoaim flags, 0 = remove them
+    int  unlockAll;       // 1 = all extras unlocked, the developers' map list and debug menu reachable
+    int  hotplug;         // 1 = a controller switched on after the start is picked up
+    char language[4];     // "" = keep, else ENG GER FRE ITA SPA for LANGUAGE in Environment.cfg
     // rumble
     int  rumble;
     float rumbleGain;
@@ -50,6 +55,7 @@ struct Config {
     int  fileLog;         // log every data file the engine opens
     int  textLog;         // log every distinct 2D text with scale and caller
     int  padLog;          // log every pad event the console receives (never the keyboard)
+    int  keyTextLog;      // log which code reads which binding and names which key
 };
 extern Config g_cfg;
 extern wchar_t g_dllDir[MAX_PATH];
@@ -84,11 +90,16 @@ void Glyphs_Patch(HMODULE mod, const char* name); // GameClasses / GameWorld but
 void HelpKey_HookConsole(HMODULE msys);           // the help button opens the help (helpkey.cpp)
 void HelpKey_Attach(HMODULE gameClasses);
 void __stdcall HelpKey_BarDrawn();
+void TextInput_Patch(HMODULE mod, const char* name); // X deletes on the name entry screen
+void Unlock_Patch(HMODULE mod, const char* name);    // [Gameplay] UnlockAll: the extras
+void Hotplug_Hook(HMODULE msys);                  // controllers switched on after the start
+void KeyText_Hook(HMODULE msys);                  // info texts name the pad; binding lookup log
 void TextLog_Patch(HMODULE mod, const char* name);
 void RndrGL_Patch(HMODULE rndr);                  // borderless window, mode list, viewport, gamma
 void DataGen_Run();                               // menus, strings, weapons, shader include
 void FontGen_Run();                               // coloured button icons inside the fonts
 void EnvCfg_Prepare();                            // Environment.cfg sanity
+std::string EnvCfg_Language();                    // ENG GER FRE ITA SPA
 void Rumble_Init();
 void __stdcall Rumble_Play(int id);
 void Rumble_Shutdown(bool callXInput);   // false on process exit

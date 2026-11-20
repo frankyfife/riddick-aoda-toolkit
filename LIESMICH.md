@@ -64,7 +64,11 @@ vergleicht das Ergebnis mit dem, was die Python-Skripte schreiben.
 die Originalgrafiken der 360, die im PC-Build mitgeliefert, aber nie gezeigt
 werden - in den kräftigen Farben statt der blassen `_32`-Fassungen.
 Tastennamen in Infotexten werden zu Symbolen. Die beiden Stick-Klicks haben
-je ein eigenes Symbol, statt sich eines zu teilen.
+je ein eigenes Symbol, statt sich eines zu teilen. Eine Aktion hat zwei
+Belegungen, zuerst die Tastatur, dann den Controller, und die Info- und
+Hilfetexte nennen die erste: bei einem neuen Profil also die Taste, nicht den
+Knopf. Das Drop-in gibt diesen Texten die Controller-Belegung (`TextButtons`),
+das Profil selbst bleibt, wie es ist.
 
 **Hilfe auf dem Controller** *(Drop-in)*. Die Hilfe-Leiste zeigt B wie auf der
 Konsole, und B öffnet die Hilfe, solange die Leiste zu sehen ist; sonst tut B,
@@ -75,7 +79,17 @@ beim Symbol.
 **Konsolenmenüs.** Sechs Bytes in `MSystem.dll` entscheiden, welche
 `PLATFORM_`-Symbole der Registry-Präprozessor setzt: das Xbox-360-Würfelmenü
 mit seinen Knopf-Hinweisen, der PC-Würfel oder der PS3-Würfel (ohne dessen
-Trophäen-Installation).
+Trophäen-Installation). Die Konsolenmenüs kennen keine eigenen Profile, auf der
+Konsole liefert sie das System; sie bekommen deshalb die Profilliste des PC:
+eine frische Installation kann ihr Profil dort anlegen, und die
+Xbox-Optionsseite bietet „Profile“ an, wo „Speichergerät auswählen“ stand. Bei
+der Namenseingabe löscht X das letzte Zeichen (`XDeletesCharacter`, Drop-in):
+die Bildschirmtastatur hat dafür keine Taste.
+
+**Jede Sprache des Spiels** *(Drop-in)*. Die Knopfsymbole liegen auf Buchstaben,
+die keine der fünf Sprachen benutzt, gezählt über Texttabellen, Dialoge und
+Abspann; Titelbild und Pausemenü sind in allen angepasst, und die
+Stick-Richtungen heißen in der Sprache des Spiels (`AxisNames`).
 
 **Aufgeräumte Menü-Hinweise** *(Drop-in)*. „Weiterspielen“/„Zurück“ und ihre
 Symbole standen in voller Zeilenhöhe; jetzt sind sie kleiner (`HintSize`,
@@ -115,6 +129,23 @@ eine frische Installation abstürzt.
 **Zielhilfe, die sich wirklich abschalten lässt.** Der Regler im Optionsmenü
 ist wirkungslos - sein Wert wird gespeichert, aber nie gelesen. Der echte
 Schalter ist die Waffenflagge `autoaim` an 23 Waffen.
+
+**Später eingeschalteter Controller** *(Drop-in, `LateController`)*. Die Engine
+legt ihre Eingabegeräte einmal beim Start an; ein Pad, das da aus war, blieb bis
+zum nächsten Start tot. Ihre eigene Abfrageroutine kann die Geräte neu aufbauen;
+die Drop-in löst das aus, sobald XInput ein Pad meldet, für das das Spiel kein
+Gerät hat.
+
+**Sprache** *(Drop-in, `Language=en|de|fr|it|es`)*. Das Spiel hat dafür kein
+Menü; die Einstellung wird als `LANGUAGE` in die `Environment.cfg` geschrieben
+und gilt ab dem nächsten Start, sofern die Sprache installiert ist.
+
+**Alles freigeschaltet, zum Testen** *(Drop-in, `UnlockAll=1`, in der Vorgabe
+aus)*. Alle Extras sind offen, und die Entwicklermenüs, die das Spiel noch
+mitbringt, verlieren ihre Cheat-Sperre: die Liste aller Karten (X oder Leertaste
+im Hauptmenü, dann „Zones“) und das Debug-Menü (X oder Leertaste im Pausemenü).
+Die Kapitelauswahl des Spiels bleibt, wie sie ist - sie zeigt die
+Kapitel-Spielstände, die ein Profil hat.
 
 **Windows-HDR** *(Drop-in)*. Bei eingeschaltetem HDR wird die Gammarampe des
 Spiels ignoriert und beim Beenden die ursprüngliche wiederhergestellt.

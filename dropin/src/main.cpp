@@ -100,6 +100,8 @@ void OnModuleLoaded(HMODULE mod, const char* name)
     else if (!_stricmp(name, "RndrGL.dll")) RndrGL_Patch(mod);
     else if (!_strnicmp(name, "GameClasses", 11) || !_strnicmp(name, "GameWorld", 9)) {
         Glyphs_Patch(mod, name);
+        TextInput_Patch(mod, name);
+        Unlock_Patch(mod, name);
         if (g_cfg.textLog) TextLog_Patch(mod, name);
     }
 }

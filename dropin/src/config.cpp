@@ -45,6 +45,8 @@ void ConfigLoad()
         Log("config: WARNING HelpButton=%ls is not a button name (A B X Y START BACK L3 R3 LB RB LT RT) - B is used", hb.c_str());
     }
     g_cfg.helpActive  = GetInt(L"Prompts", L"HelpButtonOpensHelp", 1);
+    g_cfg.padDelete   = GetInt(L"Prompts", L"XDeletesCharacter", 1);
+    g_cfg.textButtons = GetInt(L"Prompts", L"TextButtons", 1);
     std::wstring mp = GetStr(L"Prompts", L"MainMenu", L"xbox");
     g_cfg.menuPlatform = !_wcsicmp(mp.c_str(), L"pc") ? 0 : !_wcsicmp(mp.c_str(), L"ps3") ? 4
                        : !_wcsicmp(mp.c_str(), L"keep") ? -1 : 3;
@@ -62,6 +64,18 @@ void ConfigLoad()
     g_cfg.shaderMode = !_wcsicmp(sm.c_str(), L"keep") ? -1 : std::min(6, std::max(0, _wtoi(sm.c_str())));
 
     g_cfg.aimAssist = GetInt(L"Gameplay", L"AimAssist", 0);
+    g_cfg.unlockAll = GetInt(L"Gameplay", L"UnlockAll", 0);
+    g_cfg.hotplug   = GetInt(L"Gameplay", L"LateController", 1);
+    {
+        static const struct { const wchar_t* a; const wchar_t* b; const char* code; } kLang[] = {
+            { L"en", L"ENG", "ENG" }, { L"de", L"GER", "GER" }, { L"fr", L"FRE", "FRE" }, { L"it", L"ITA", "ITA" }, { L"es", L"SPA", "SPA" },
+        };
+        std::wstring lg = GetStr(L"Gameplay", L"Language", L"keep");
+        g_cfg.language[0] = 0;
+        for (auto& l : kLang) if (!_wcsicmp(lg.c_str(), l.a) || !_wcsicmp(lg.c_str(), l.b)) strcpy_s(g_cfg.language, l.code);
+        if (!g_cfg.language[0] && _wcsicmp(lg.c_str(), L"keep") != 0)
+            Log("config: WARNING Language=%ls is not one of keep en de fr it es - the game's setting is kept", lg.c_str());
+    }
 
     g_cfg.rumble     = GetInt(L"Rumble", L"Enable", 1);
     g_cfg.rumbleGain = std::min(4.0f, std::max(0.0f, GetFloat(L"Rumble", L"Gain", 1.0f)));
@@ -71,10 +85,11 @@ void ConfigLoad()
     g_cfg.fileLog = GetInt(L"Debug", L"FileLog", 0);
     g_cfg.textLog = GetInt(L"Debug", L"TextLog", 0);
     g_cfg.padLog  = GetInt(L"Debug", L"PadLog", 0);
+    g_cfg.keyTextLog = GetInt(L"Debug", L"KeyTextLog", 0);
 
-    Log("config: buttons=%d icons=%d texts=%d help=0x%02X helpactive=%d menu=%d | dpi=%d borderless=%d viewport=%d modes=%d desktop=%d gamma=%d | "
-        "shaderfix=%d shadermode=%d aimassist=%d | rumble=%d gain=%.2f swap=%d",
-        g_cfg.xboxPrompts, g_cfg.colorIcons, g_cfg.menuTexts, g_cfg.helpButton, g_cfg.helpActive, g_cfg.menuPlatform,
+    Log("config: buttons=%d icons=%d texts=%d help=0x%02X helpactive=%d xdel=%d textbuttons=%d menu=%d | dpi=%d borderless=%d viewport=%d modes=%d desktop=%d gamma=%d | "
+        "shaderfix=%d shadermode=%d aimassist=%d unlock=%d latepad=%d language=%s | rumble=%d gain=%.2f swap=%d",
+        g_cfg.xboxPrompts, g_cfg.colorIcons, g_cfg.menuTexts, g_cfg.helpButton, g_cfg.helpActive, g_cfg.padDelete, g_cfg.textButtons, g_cfg.menuPlatform,
         g_cfg.dpiAware, g_cfg.borderless, g_cfg.fullViewport, g_cfg.modeList, g_cfg.desktopMode, g_cfg.gammaRamp,
-        g_cfg.shaderFix, g_cfg.shaderMode, g_cfg.aimAssist, g_cfg.rumble, g_cfg.rumbleGain, g_cfg.rumbleSwap);
+        g_cfg.shaderFix, g_cfg.shaderMode, g_cfg.aimAssist, g_cfg.unlockAll, g_cfg.hotplug, g_cfg.language[0] ? g_cfg.language : "keep", g_cfg.rumble, g_cfg.rumbleGain, g_cfg.rumbleSwap);
 }

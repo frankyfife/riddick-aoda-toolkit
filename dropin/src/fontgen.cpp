@@ -5,13 +5,14 @@
 // atlas can be rewritten in colour. The icons are the game's own Xbox 360 button
 // artwork from GUI.xtc, painted into the largest empty row band of the atlas;
 // unused Latin-1 donor characters are pointed at them (msystem.cpp names the pad
-// keys with exactly these characters).
+// keys with exactly these characters, and says how they were chosen: no language
+// of the game may need the letter).
 #include "common.h"
 #include <map>
 #include <math.h>
 #include <string.h>
 
-static const char kVersion[] = "fontgen 1";
+static const char kVersion[] = "fontgen 2";
 
 namespace {
 
@@ -20,21 +21,21 @@ struct Img { int w = 0, h = 0; std::vector<float> px; };   // straight RGBA, 0..
 struct Glyph { uint8_t pad, donor; const char* tex; int crop[4]; };   // crop {0} = alpha bounding box
 const Glyph kGlyphs[] = {
     { 0xA0, 0xF0, "GUI_Button_A",      {} },
-    { 0xA1, 0xF1, "GUI_Button_B",      {} },
+    { 0xA1, 0xFD, "GUI_Button_B",      {} },
     { 0xA2, 0xE6, "GUI_Button_X",      {} },
     { 0xA3, 0xF8, "GUI_Button_Y",      {} },
-    { 0xA4, 0xE5, "GUI_Button_Start",  { 29, 20, 82, 63 } },   // without the lettering
+    { 0xA4, 0xEB, "GUI_Button_Start",  { 29, 20, 82, 63 } },   // without the lettering
     { 0xA5, 0xE3, "GUI_Button_Back",   { 17, 20, 64, 58 } },
     { 0xA6, 0xF5, "GUI_Button_LC",     {} },
-    { 0xA7, 0xA1, "GUI_Button_RC",     {} },
-    { 0xA8, 0xBF, "GUI_Button_LB",     {} },
+    { 0xA7, 0xD5, "GUI_Button_RC",     {} },
+    { 0xA8, 0xD8, "GUI_Button_LB",     {} },
     { 0xA9, 0xD0, "GUI_Button_RB",     {} },
-    { 0xAA, 0xD1, "GUI_Button_LT",     {} },
+    { 0xAA, 0xC3, "GUI_Button_LT",     {} },
     { 0xAB, 0xC6, "GUI_Button_RT",     {} },
-    { 0xB0, 0xEC, "GUI_Button_DUp",    {} },
-    { 0xB1, 0xED, "GUI_Button_DRight", {} },
-    { 0xB2, 0xEE, "GUI_Button_DDown",  {} },
-    { 0xB3, 0xEF, "GUI_Button_DLeft",  {} },
+    { 0xB0, 0xDD, "GUI_Button_DUp",    {} },
+    { 0xB1, 0xCB, "GUI_Button_DRight", {} },
+    { 0xB2, 0xCE, "GUI_Button_DDown",  {} },
+    { 0xB3, 0xCF, "GUI_Button_DLeft",  {} },
 };
 const int kCellH = 35;   // line height of the fonts
 const int kSymH = 31;    // icon height inside the cell

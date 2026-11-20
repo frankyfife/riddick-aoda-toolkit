@@ -63,7 +63,10 @@ the result with what the Python scripts write.
 the original 360 artwork that ships with the game but is never shown on PC, in
 its full colours instead of the washed-out `_32` variants. Button names in info
 texts become icons. The two stick clicks get icons of their own instead of
-sharing one.
+sharing one. An action has two bindings, keyboard first and pad second, and the
+info and help texts name the first: on a new profile that is the key, not the
+button. The drop-in hands those texts the pad binding (`TextButtons`), the
+profile itself stays as it is.
 
 **Help on the controller** *(drop-in)*. The help bar shows B, as on the console,
 and B opens the help while that bar is on screen; the rest of the time B does
@@ -73,7 +76,17 @@ icon.
 
 **Console menus.** Six bytes in `MSystem.dll` decide which `PLATFORM_` symbols
 the registry preprocessor defines - the Xbox 360 cube menu with its button
-hints, the PC cube, or the PS3 cube (without the PS3 trophy installation).
+hints, the PC cube, or the PS3 cube (without the PS3 trophy installation). The
+console menus have no profiles of their own, on the console the system supplies
+one, so they get the PC's profile list: a new installation can create its
+profile there, and the Xbox options page offers "Profiles" where it had "select
+storage device". Where the name is typed, X deletes the last character
+(`XDeletesCharacter`, drop-in): the on-screen keyboard has no key for it.
+
+**Every language of the game** *(drop-in)*. The button icons sit on letters none
+of the five languages uses, counted over string tables, dialogues and credits;
+the title screen and the pause menu are adapted in all of them, and the stick
+directions are named in the game's language (`AxisNames`).
 
 **Tidier menu hints** *(drop-in)*. "Continue"/"Back" and their icons were drawn
 at full line height; they are smaller now (`HintSize`, `HintIconSize`), the icons
@@ -110,6 +123,21 @@ fixes the shipped `XR_SHADERMODE=11` (valid: 0-6) that crashes a fresh install.
 **Aim assist you can actually switch off.** The options slider is inert - its
 value is stored but never read. The real switch is the weapon flag `autoaim` on
 23 weapons.
+
+**A controller switched on later** *(drop-in, `LateController`)*. The engine
+builds its input devices once at start, so a pad that was off then stayed dead
+until the next start. Its own per-frame update can rebuild them; the drop-in
+triggers that as soon as XInput reports a pad the game has no device for.
+
+**Language** *(drop-in, `Language=en|de|fr|it|es`)*. The game has no menu for
+it; the setting is written to `LANGUAGE` in `Environment.cfg` and applies from
+the next start, if that language is installed.
+
+**Everything unlocked, for testing** *(drop-in, `UnlockAll=1`, off by default)*.
+All extras are unlocked, and the developers' menus that still ship with the game
+lose their cheat gate: the list of all maps (X or Space in the main menu, then
+"Zones") and the debug menu (X or Space in the pause menu). The game's own
+chapter list is left alone - it shows the chapter saves a profile has.
 
 **Windows HDR** *(drop-in)*. With HDR on, the game's gamma ramp is ignored and
 the original ramp is restored on exit.

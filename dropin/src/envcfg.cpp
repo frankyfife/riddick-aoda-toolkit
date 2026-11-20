@@ -31,6 +31,23 @@ static bool SetKey(std::string& s, const char* key, const std::string& v)
     return true;
 }
 
+// LANGUAGE of the game (ENG GER FRE ITA SPA): from the user's Environment.cfg, on a
+// first start from the shipped one the game seeds it with; "ENG" when neither says.
+std::string EnvCfg_Language()
+{
+    std::vector<uint8_t> raw;
+    wchar_t la[MAX_PATH];
+    bool ok = false;
+    if (SUCCEEDED(SHGetFolderPathW(nullptr, CSIDL_LOCAL_APPDATA, nullptr, 0, la)))
+        ok = ReadFileAll(std::wstring(la) + L"\\Atari\\The Chronicles of Riddick - Assault on Dark Athena\\Environment.cfg", raw) && !raw.empty();
+    if (!ok) ok = ReadFileAll(std::wstring(g_gameRoot) + L"\\Environment.cfg", raw);
+    std::string v = ok ? GetKey(std::string(raw.begin(), raw.end()), "LANGUAGE") : "";
+    while (!v.empty() && (v.back() == ' ' || v.back() == '\t')) v.pop_back();
+    if (v.empty() || v == "\x01") v = "ENG";
+    for (auto& c : v) c = (char)toupper((unsigned char)c);
+    return v;
+}
+
 void EnvCfg_Prepare()
 {
     wchar_t la[MAX_PATH];
@@ -59,6 +76,20 @@ void EnvCfg_Prepare()
     else if (sm != "\x01" && (atoi(sm.c_str()) < 0 || atoi(sm.c_str()) > 6)) {
         Log("envcfg: XR_SHADERMODE=%s is outside 0..6 (crash in GLSL_LoadSrc) -> 0 (auto)", sm.c_str());
         changed |= SetKey(s, "XR_SHADERMODE", "0");
+    }
+
+    // [Gameplay] Language: the game has no menu for it, LANGUAGE is read at start only.
+    // A language whose texts are not installed would leave every label as its raw id.
+    if (g_cfg.language[0]) {
+        const char* c = g_cfg.language;
+        std::wstring probe = std::wstring(g_gameRoot) + L"\\Content";
+        if (strcmp(c, "ENG")) { const wchar_t tag[] = { L'_', (wchar_t)c[0], (wchar_t)tolower(c[1]), (wchar_t)tolower(c[2]), 0 }; probe += tag; }
+        probe += L"\\Registry\\Stringtables";
+        std::string old = GetKey(s, "LANGUAGE");
+        if (old == "\x01") old = "(none)";
+        if (GetFileAttributesW(probe.c_str()) == INVALID_FILE_ATTRIBUTES)
+            Log("envcfg: Language=%s is not installed (%ls) - LANGUAGE stays %s", c, probe.c_str(), old.c_str());
+        else if (SetKey(s, "LANGUAGE", c)) { changed = true; Log("envcfg: LANGUAGE %s -> %s", old.c_str(), c); }
     }
 
     if (g_cfg.desktopMode) {

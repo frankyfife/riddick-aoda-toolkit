@@ -31,6 +31,12 @@ extern "C" int __stdcall AodaFix_SelfTest(const wchar_t* gameRoot, const wchar_t
     // likewise the help button: its call in the hb stub and the detour in MSystem
     // have no counterpart in the toolkit
     if ((int)GetPrivateProfileIntW(L"Prompts", L"HelpButtonOpensHelp", -1, ini) < 0) g_cfg.helpActive = 0;
+    // and the X button of the name entry screen (textinput.cpp)
+    if ((int)GetPrivateProfileIntW(L"Prompts", L"XDeletesCharacter", -1, ini) < 0) g_cfg.padDelete = 0;
+    // and the detour that lets info texts name the pad (keytext.cpp)
+    if ((int)GetPrivateProfileIntW(L"Prompts", L"TextButtons", -1, ini) < 0) g_cfg.textButtons = 0;
+    // and the one that picks up late controllers (hotplug.cpp)
+    if ((int)GetPrivateProfileIntW(L"Gameplay", L"LateController", -1, ini) < 0) g_cfg.hotplug = 0;
     DataGen_Run();
     FontGen_Run();
 

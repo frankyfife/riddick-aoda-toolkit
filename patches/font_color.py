@@ -45,21 +45,21 @@ FMT_A8 = 0x00040000
 # Padcode, Spenderzeichen, Textur in GUI.xtc, Zuschnitt (None = Alpha-Rahmen)
 GLYPHS = [
     (0xA0, 0xF0, "GUI_Button_A",      None),
-    (0xA1, 0xF1, "GUI_Button_B",      None),
+    (0xA1, 0xFD, "GUI_Button_B",      None),
     (0xA2, 0xE6, "GUI_Button_X",      None),
     (0xA3, 0xF8, "GUI_Button_Y",      None),
-    (0xA4, 0xE5, "GUI_Button_Start",  (29, 20, 82, 63)),   # ohne den Schriftzug
+    (0xA4, 0xEB, "GUI_Button_Start",  (29, 20, 82, 63)),   # ohne den Schriftzug
     (0xA5, 0xE3, "GUI_Button_Back",   (17, 20, 64, 58)),   # ohne den Schriftzug
     (0xA6, 0xF5, "GUI_Button_LC",     None),
-    (0xA7, 0xA1, "GUI_Button_RC",     None),
-    (0xA8, 0xBF, "GUI_Button_LB",     None),
+    (0xA7, 0xD5, "GUI_Button_RC",     None),
+    (0xA8, 0xD8, "GUI_Button_LB",     None),
     (0xA9, 0xD0, "GUI_Button_RB",     None),
-    (0xAA, 0xD1, "GUI_Button_LT",     None),
+    (0xAA, 0xC3, "GUI_Button_LT",     None),
     (0xAB, 0xC6, "GUI_Button_RT",     None),
-    (0xB0, 0xEC, "GUI_Button_DUp",    None),
-    (0xB1, 0xED, "GUI_Button_DRight", None),
-    (0xB2, 0xEE, "GUI_Button_DDown",  None),
-    (0xB3, 0xEF, "GUI_Button_DLeft",  None),
+    (0xB0, 0xDD, "GUI_Button_DUp",    None),
+    (0xB1, 0xCB, "GUI_Button_DRight", None),
+    (0xB2, 0xCE, "GUI_Button_DDown",  None),
+    (0xB3, 0xCF, "GUI_Button_DLeft",  None),
 ]
 
 ZELLE_H = 35        # Zeilenhoehe der Schrift

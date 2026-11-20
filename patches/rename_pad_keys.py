@@ -68,21 +68,21 @@ NAMES = {
     # deutschen Text unbenutzt und alle <= 0xFF, passen also als ein Byte in die
     # Namenstabelle.
     0xA0: chr(0xF0),   # A
-    0xA1: chr(0xF1),   # B
+    0xA1: chr(0xFD),   # B
     0xA2: chr(0xE6),   # X
     0xA3: chr(0xF8),   # Y
-    0xA4: chr(0xE5),   # START
+    0xA4: chr(0xEB),   # START
     0xA5: chr(0xE3),   # BACK
     0xA6: chr(0xF5),   # L3
-    0xA7: chr(0xA1),   # R3
-    0xA8: chr(0xBF),   # LB
+    0xA7: chr(0xD5),   # R3
+    0xA8: chr(0xD8),   # LB
     0xA9: chr(0xD0),   # RB
-    0xAA: chr(0xD1),   # LT
+    0xAA: chr(0xC3),   # LT
     0xAB: chr(0xC6),   # RT
-    0xB0: chr(0xEC),   # Steuerkreuz oben
-    0xB1: chr(0xED),   # Steuerkreuz rechts
-    0xB2: chr(0xEE),   # Steuerkreuz unten
-    0xB3: chr(0xEF),   # Steuerkreuz links
+    0xB0: chr(0xDD),   # Steuerkreuz oben
+    0xB1: chr(0xCB),   # Steuerkreuz rechts
+    0xB2: chr(0xCE),   # Steuerkreuz unten
+    0xB3: chr(0xCF),   # Steuerkreuz links
     # Fuer die Achsen gibt es keine Symbole - die bleiben ausgeschrieben.
     0x80: "Linker Stick rechts",
     0x81: "Linker Stick links",
