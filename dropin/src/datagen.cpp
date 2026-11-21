@@ -288,6 +288,41 @@ static bool TitlePrompt(std::vector<uint8_t>& raw)
     return true;
 }
 
+// Info texts name a key through a placeholder, CONTROLLER_<ACTION>_<form>, which
+// stands for the binding ACTION_<ACTION> (keytext.cpp puts the pad there). Four
+// of the actions the texts use have no pad binding to put there:
+//   WEAPONFLASHLIGHT  keyboard only (G). The PC branch of the flashlight text
+//                     uses it, the console branch names the d-pad: "#ifdef
+//                     PLATFORM_WIN_PC ... #else ... DPAD_DOWN". With the PC menu
+//                     that text said "pressing G".
+//   EYESHINE          keyboard only (Q), in the Dark Athena tutorial of every
+//                     language and in the German and French Butcher Bay one. The
+//                     other languages say DPAD_UP in that same text.
+//   CROUCHTOGGLE      German and French only; not a binding the game sets up at
+//                     all, the English text says CROUCH.
+//   SPRINT2           the pad slot by name, in the multiplayer hints - which is
+//                     the keyboard's once the two slots answer for each other.
+// They are pointed at the action the pad does have. Only the placeholder
+// changes, its form (_A, _C3, ...) and the sentence stay.
+static bool PadActions(std::vector<uint8_t>& raw)
+{
+    static const wchar_t* const kMap[][2] = {
+        { L"\x00A7" L"LCONTROLLER_WEAPONFLASHLIGHT_", L"\x00A7" L"LCONTROLLER_DPAD_DOWN_" },
+        { L"\x00A7" L"LCONTROLLER_EYESHINE_",         L"\x00A7" L"LCONTROLLER_DPAD_UP_" },
+        { L"\x00A7" L"LCONTROLLER_CROUCHTOGGLE_",     L"\x00A7" L"LCONTROLLER_CROUCH_" },
+        { L"\x00A7" L"LCONTROLLER_SPRINT2_",          L"\x00A7" L"LCONTROLLER_SPRINT_" },
+    };
+    StringTable st(raw);
+    int n = 0;
+    for (auto& m : kMap) {
+        size_t from = wcslen(m[0]), to = wcslen(m[1]);
+        for (size_t p = 0; (p = st.t.find(m[0], p)) != std::wstring::npos; p += to) { st.t.replace(p, from, m[1]); ++n; }
+    }
+    if (!n) return false;
+    st.Store(raw);
+    return true;
+}
+
 // ---- weapons: the menu's aim-assist slider is inert; the item flag 'autoaim' is the switch --
 static int RemoveAutoaim(std::string& s)
 {
@@ -371,6 +406,12 @@ void DataGen_Run()
         // the Xbox menus show STD_PAUSED at the bottom of the pause menu
         if (g_cfg.menuTexts && g_cfg.menuPlatform == 3 && there(x360))
             Gen(x360.c_str(), "p", [](std::vector<uint8_t>& d) { return SetStringValue(d, "STD_PAUSED", L""); });
+        // texts that name an action the pad has no binding for (same condition as keytext.cpp)
+        if (g_cfg.textButtons && g_cfg.xboxPrompts && g_cfg.colorIcons)
+            for (const char* table : { "Ingame_", "Ingame_Athena_", "Multiplayer_" }) {
+                std::string rel = dir + table + l[1] + ".txt";
+                if (there(rel)) Gen(rel.c_str(), "k", PadActions);
+            }
     }
     if (!g_cfg.aimAssist)
         Gen("Content\\Registry\\RpgWeapons.xrg", "a", AsText([](std::string& s) {

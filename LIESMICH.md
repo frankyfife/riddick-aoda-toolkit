@@ -68,7 +68,9 @@ je ein eigenes Symbol, statt sich eines zu teilen. Eine Aktion hat zwei
 Belegungen, zuerst die Tastatur, dann den Controller, und die Info- und
 Hilfetexte nennen die erste: bei einem neuen Profil also die Taste, nicht den
 Knopf. Das Drop-in gibt diesen Texten die Controller-Belegung (`TextButtons`),
-das Profil selbst bleibt, wie es ist.
+das Profil selbst bleibt, wie es ist. Zwei Aktionen haben eine Taste, aber
+keinen Knopf, die Waffenlampe und die Spezialaugen; ihre Texte nennen die
+Richtung des Steuerkreuzes, die das tut, wie auf der Konsole.
 
 **Hilfe auf dem Controller** *(Drop-in)*. Die Hilfe-Leiste zeigt B wie auf der
 Konsole, und B öffnet die Hilfe, solange die Leiste zu sehen ist; sonst tut B,

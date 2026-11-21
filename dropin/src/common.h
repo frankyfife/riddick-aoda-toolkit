@@ -6,7 +6,7 @@
 // never modified.
 #pragma once
 // Shown in the first line of AodaFix.log, so an incoming log says which build it was.
-#define AODAFIX_VERSION "1.1.2"
+#define AODAFIX_VERSION "1.1.3"
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>

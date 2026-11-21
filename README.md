@@ -66,7 +66,9 @@ texts become icons. The two stick clicks get icons of their own instead of
 sharing one. An action has two bindings, keyboard first and pad second, and the
 info and help texts name the first: on a new profile that is the key, not the
 button. The drop-in hands those texts the pad binding (`TextButtons`), the
-profile itself stays as it is.
+profile itself stays as it is. Two actions have a key but no button, the weapon
+flashlight and the eyeshine; their texts name the d-pad direction that does it,
+as the console's do.
 
 **Help on the controller** *(drop-in)*. The help bar shows B, as on the console,
 and B opens the help while that bar is on screen; the rest of the time B does
